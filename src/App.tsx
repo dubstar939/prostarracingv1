@@ -3,18 +3,62 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect, useRef } from 'react';
-import { RacingGame, TrackThemeType } from './components/RacingGame';
-import { Trophy, Flag, Settings, Play, Info, Loader2, Map, ShoppingBag, ChevronRight, Gauge, Zap } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { GoogleGenAI } from '@google/genai';
-import { CarConfig, CAR_MODELS, CarModelType, RaceMode, Inventory } from './types';
+import { 
+  Trophy, Flag, Settings, Play, Info, Loader2, 
+  Map, ShoppingBag, ChevronRight, Gauge, Zap 
+} from 'lucide-react';
 
-function useCoverImage() {
+import { RacingGame, TrackThemeType } from './components/RacingGame';
+import Garage from './components/Garage';
+import Store from './components/Store';
+import { 
+  CarConfig, 
+  CAR_MODELS, 
+  RaceMode, 
+  Inventory,
+  getDefaultCarConfig,
+  getDefaultInventory,
+} from './types';
+
+// ============================================================================
+// Type Definitions
+// ============================================================================
+
+type GameState = 
+  | 'title' 
+  | 'menu' 
+  | 'playing' 
+  | 'gameover' 
+  | 'level-complete' 
+  | 'options' 
+  | 'mode-select' 
+  | 'garage' 
+  | 'store';
+
+interface RaceResult {
+  position: number;
+  time: string;
+  reward: number;
+  score?: number;
+}
+
+// ============================================================================
+// Custom Hooks
+// ============================================================================
+
+/**
+ * Hook to manage cover image generation and caching.
+ */
+function useCoverImage(): string | null {
   const [coverImage, setCoverImage] = useState<string | null>(() => {
     try {
-      return typeof localStorage !== 'undefined' ? localStorage.getItem('coverImage') : null;
-    } catch (e) {
+      return typeof localStorage !== 'undefined' 
+        ? localStorage.getItem('coverImage') 
+        : null;
+    } catch {
       return null;
     }
   });
@@ -26,35 +70,35 @@ function useCoverImage() {
       try {
         const apiKey = process.env.GEMINI_API_KEY;
         if (!apiKey) {
-          console.warn("GEMINI_API_KEY is missing, skipping cover image generation");
+          console.warn('GEMINI_API_KEY is missing, skipping cover image generation');
           return;
         }
+
         const ai = new GoogleGenAI({ apiKey });
         const response = await ai.models.generateContent({
           model: 'gemini-2.5-flash-image',
           contents: '1980s arcade racing video game cover art, synthwave aesthetic, outrun style, neon grid floor, glowing sunset, retro sports car driving towards the horizon, vibrant magenta cyan and purple colors, airbrushed retro style, no text',
           config: {
             imageConfig: {
-              aspectRatio: "9:16"
-            }
-          }
+              aspectRatio: '9:16',
+            },
+          },
         });
 
         for (const part of response.candidates?.[0]?.content?.parts || []) {
           if (part.inlineData) {
-            const base64EncodeString = part.inlineData.data;
-            const imageUrl = `data:image/png;base64,${base64EncodeString}`;
+            const imageUrl = `data:image/png;base64,${part.inlineData.data}`;
             setCoverImage(imageUrl);
             try {
               localStorage.setItem('coverImage', imageUrl);
-            } catch (e) {
-              console.warn("Could not save to localStorage (quota exceeded?)");
+            } catch {
+              console.warn('Could not save to localStorage (quota exceeded?)');
             }
             break;
           }
         }
       } catch (error) {
-        console.error("Error generating cover image:", error);
+        console.error('Error generating cover image:', error);
       }
     };
 
@@ -64,100 +108,61 @@ function useCoverImage() {
   return coverImage;
 }
 
-import Garage from './components/Garage';
-import Store from './components/Store';
+/**
+ * Hook to manage localStorage state with error handling.
+ */
+function useLocalStorageState<T>(
+  key: string,
+  initialValue: T
+): [T, React.Dispatch<React.SetStateAction<T>>] {
+  const [state, setState] = useState<T>(() => {
+    try {
+      const saved = typeof localStorage !== 'undefined' 
+        ? localStorage.getItem(key) 
+        : null;
+      return saved ? JSON.parse(saved) : initialValue;
+    } catch {
+      return initialValue;
+    }
+  });
+
+  useEffect(() => {
+    try {
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem(key, JSON.stringify(state));
+      }
+    } catch (error) {
+      console.warn(`Error saving ${key} to localStorage:`, error);
+    }
+  }, [key, state]);
+
+  return [state, setState];
+}
+
+// ============================================================================
+// Main Application Component
+// ============================================================================
 
 export default function App() {
-  const [gameState, setGameState] = useState<'title' | 'menu' | 'playing' | 'gameover' | 'level-complete' | 'options' | 'mode-select' | 'garage' | 'store'>('title');
-  const [level, setLevel] = useState(() => {
-    try {
-      const saved = typeof localStorage !== 'undefined' ? localStorage.getItem('racing_level') : null;
-      return saved ? parseInt(saved, 10) : 1;
-    } catch (e) {
-      return 1;
-    }
-  });
-  const [money, setMoney] = useState(() => {
-    try {
-      const saved = typeof localStorage !== 'undefined' ? localStorage.getItem('racing_money') : null;
-      return saved ? parseInt(saved, 10) : 0;
-    } catch (e) {
-      return 0;
-    }
-  });
-  const [carConfig, setCarConfig] = useState<CarConfig>(() => {
-    try {
-      const saved = typeof localStorage !== 'undefined' ? localStorage.getItem('racing_car_config') : null;
-      return saved ? JSON.parse(saved) : {
-        model: 'speedster',
-        color: '#ffffff',
-        spoiler: 'small',
-        rims: 'silver',
-        decal: 'none',
-        bodyKit: 'stock',
-        engine: 1,
-        tires: 1,
-        turbo: 1
-      };
-    } catch (e) {
-      return {
-        model: 'speedster',
-        color: '#ffffff',
-        spoiler: 'small',
-        rims: 'silver',
-        decal: 'none',
-        bodyKit: 'stock',
-        engine: 1,
-        tires: 1,
-        turbo: 1
-      };
-    }
-  });
-  
-  const [inventory, setInventory] = useState<Inventory>(() => {
-    try {
-      const saved = typeof localStorage !== 'undefined' ? localStorage.getItem('racing_inventory') : null;
-      return saved ? JSON.parse(saved) : {
-        engines: [1],
-        tires: [1],
-        turbos: [1]
-      };
-    } catch (e) {
-      return {
-        engines: [1],
-        tires: [1],
-        turbos: [1]
-      };
-    }
-  });
-  const [lastResult, setLastResult] = useState<{ position: number; time: string; reward: number; score?: number } | null>(null);
-  const [raceMode, setRaceMode] = useState<RaceMode>('classic');
-  const [showResetConfirm, setShowResetConfirm] = useState(false);
-
-  useEffect(() => {
-    if (typeof localStorage !== 'undefined') {
-      localStorage.setItem('racing_level', level.toString());
-    }
-  }, [level]);
-
-  useEffect(() => {
-    if (typeof localStorage !== 'undefined') {
-      localStorage.setItem('racing_money', money.toString());
-    }
-  }, [money]);
-
-  useEffect(() => {
-    if (typeof localStorage !== 'undefined') {
-      localStorage.setItem('racing_car_config', JSON.stringify(carConfig));
-    }
-  }, [carConfig]);
-
-  useEffect(() => {
-    if (typeof localStorage !== 'undefined') {
-      localStorage.setItem('racing_inventory', JSON.stringify(inventory));
-    }
-  }, [inventory]);
+  // Game State
+  const [gameState, setGameState] = useState<GameState>('title');
   const [trackTheme, setTrackTheme] = useState<TrackThemeType>('neon_city');
+  const [raceMode, setRaceMode] = useState<RaceMode>('classic');
+  const [lastResult, setLastResult] = useState<RaceResult | null>(null);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
+  
+  // Persistent State (with localStorage)
+  const [level, setLevel] = useLocalStorageState<number>('racing_level', 1);
+  const [money, setMoney] = useLocalStorageState<number>('racing_money', 0);
+  const [carConfig, setCarConfig] = useLocalStorageState<CarConfig>(
+    'racing_car_config', 
+    getDefaultCarConfig()
+  );
+  const [inventory, setInventory] = useLocalStorageState<Inventory>(
+    'racing_inventory', 
+    getDefaultInventory()
+  );
+
   const coverImage = useCoverImage();
 
   const startGame = () => {
