@@ -206,6 +206,7 @@ export const RacingGame: React.FC<RacingGameProps> = ({
   const cityscapeRef = useRef<any[]>([]);
   const [isMobile, setIsMobile] = useState(false);
   const [checkpointNotify, setCheckpointNotify] = useState(false);
+  const [gameStarted, setGameStarted] = useState(false);
 
   const SCREEN_WIDTH = aspectRatio === '4:3' ? 800 : 1066;
   const SCREEN_HEIGHT = 600;
