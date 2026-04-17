@@ -45,78 +45,82 @@ export default function ThreeCarPreview({ carConfig, glbUrl }: ThreeCarPreviewPr
 
     // Loader
     const loader = new GLTFLoader();
-    // Try using allorigins proxy instead, or fallback to raw URL if that fails
-    const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(glbUrl)}`;
-    loader.load(proxyUrl, (gltf) => {
-      const model = gltf.scene;
-      
-      // User request: Place it at (0,0,0) and scale it to 0.5
-      model.position.set(0, 0, 0);
-      model.scale.set(0.5, 0.5, 0.5);
-      
-      // Center the model
-      const box = new THREE.Box3().setFromObject(model);
-      const center = box.getCenter(new THREE.Vector3());
-      model.position.x -= center.x;
-      model.position.y -= center.y;
-      model.position.z -= center.z;
-      
-      // Reset to (0,0,0) as requested after centering
-      model.position.set(0, 0, 0);
+    // Load the GLB model directly from URL with CORS-friendly GitHub raw URLs
+    loader.load(
+      glbUrl,
+      (gltf) => {
+        const model = gltf.scene;
+        
+        // User request: Place it at (0,0,0) and scale it to 0.5
+        model.position.set(0, 0, 0);
+        model.scale.set(0.5, 0.5, 0.5);
+        
+        // Center the model
+        const box = new THREE.Box3().setFromObject(model);
+        const center = box.getCenter(new THREE.Vector3());
+        model.position.x -= center.x;
+        model.position.y -= center.y;
+        model.position.z -= center.z;
+        
+        // Reset to (0,0,0) as requested after centering
+        model.position.set(0, 0, 0);
 
-      scene.add(model);
-      carRef.current = model;
+        scene.add(model);
+        carRef.current = model;
 
-      // Apply car color to materials that look like body paint
-      model.traverse((child) => {
-        if ((child as THREE.Mesh).isMesh) {
-          const mesh = child as THREE.Mesh;
-          const material = mesh.material as THREE.MeshStandardMaterial;
-          if (material && (material.name.toLowerCase().includes('body') || material.name.toLowerCase().includes('paint'))) {
-            material.color.set(carConfig.color);
+        // Apply car color to materials that look like body paint
+        model.traverse((child) => {
+          if ((child as THREE.Mesh).isMesh) {
+            const mesh = child as THREE.Mesh;
+            const material = mesh.material as THREE.MeshStandardMaterial;
+            if (material && (material.name.toLowerCase().includes('body') || material.name.toLowerCase().includes('paint'))) {
+              material.color.set(carConfig.color);
+            }
           }
-        }
-      });
-    }, undefined, (error) => {
-      console.error('Error loading GLB:', error);
-      // Fallback to a simple car-like shape
-      const carGroup = new THREE.Group();
-      
-      // Body
-      const bodyGeo = new THREE.BoxGeometry(2, 0.5, 4);
-      const material = new THREE.MeshStandardMaterial({ color: carConfig.color });
-      const body = new THREE.Mesh(bodyGeo, material);
-      body.position.y = 0.5;
-      carGroup.add(body);
+        });
+      },
+      undefined,
+      (error) => {
+        console.error('Error loading GLB:', error);
+        // Fallback to a simple car-like shape
+        const carGroup = new THREE.Group();
+        
+        // Body
+        const bodyGeo = new THREE.BoxGeometry(2, 0.5, 4);
+        const material = new THREE.MeshStandardMaterial({ color: carConfig.color });
+        const body = new THREE.Mesh(bodyGeo, material);
+        body.position.y = 0.5;
+        carGroup.add(body);
 
-      // Cabin
-      const cabinGeo = new THREE.BoxGeometry(1.5, 0.5, 2);
-      const cabinMat = new THREE.MeshStandardMaterial({ color: 0x222222 });
-      const cabin = new THREE.Mesh(cabinGeo, cabinMat);
-      cabin.position.y = 1;
-      cabin.position.z = -0.5;
-      carGroup.add(cabin);
+        // Cabin
+        const cabinGeo = new THREE.BoxGeometry(1.5, 0.5, 2);
+        const cabinMat = new THREE.MeshStandardMaterial({ color: 0x222222 });
+        const cabin = new THREE.Mesh(cabinGeo, cabinMat);
+        cabin.position.y = 1;
+        cabin.position.z = -0.5;
+        carGroup.add(cabin);
 
-      // Wheels
-      const wheelGeo = new THREE.CylinderGeometry(0.4, 0.4, 0.2, 16);
-      wheelGeo.rotateZ(Math.PI / 2);
-      const wheelMat = new THREE.MeshStandardMaterial({ color: 0x111111 });
-      
-      const positions = [
-        [-1, 0.4, 1.2], [1, 0.4, 1.2],
-        [-1, 0.4, -1.2], [1, 0.4, -1.2]
-      ];
-      
-      positions.forEach(pos => {
-        const wheel = new THREE.Mesh(wheelGeo, wheelMat);
-        wheel.position.set(pos[0], pos[1], pos[2]);
-        carGroup.add(wheel);
-      });
+        // Wheels
+        const wheelGeo = new THREE.CylinderGeometry(0.4, 0.4, 0.2, 16);
+        wheelGeo.rotateZ(Math.PI / 2);
+        const wheelMat = new THREE.MeshStandardMaterial({ color: 0x111111 });
+        
+        const positions = [
+          [-1, 0.4, 1.2], [1, 0.4, 1.2],
+          [-1, 0.4, -1.2], [1, 0.4, -1.2]
+        ];
+        
+        positions.forEach(pos => {
+          const wheel = new THREE.Mesh(wheelGeo, wheelMat);
+          wheel.position.set(pos[0], pos[1], pos[2]);
+          carGroup.add(wheel);
+        });
 
-      carGroup.position.set(0, 0, 0);
-      scene.add(carGroup);
-      carRef.current = carGroup;
-    });
+        carGroup.position.set(0, 0, 0);
+        scene.add(carGroup);
+        carRef.current = carGroup;
+      }
+    );
 
     // Animation loop
     let animationId: number;

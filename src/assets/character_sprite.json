@@ -1,11 +1,12 @@
 {
   "asset_type": "2D Character Sprite",
   "resolution": "32x32",
-  "style": "Retro-futuristic neon arcade",
+  "style": "Grounded 90s-2000s Japan street racer",
   "palette": [
-    "#00f6ff",
-    "#ff00e6",
-    "#020617",
+    "#1a202c",
+    "#4a5568",
+    "#f5f5f5",
+    "#c41e3a",
     "transparent"
   ],
   "frames": [
