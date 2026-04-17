@@ -184,22 +184,26 @@ export const CAR_MODELS: Record<CarModelType, CarModelInfo> = {
   speedster: { 
     name: 'Speedster', 
     description: 'High top speed, lower handling.', 
-    stats: { speed: 8, accel: 6, handling: 4 }
+    stats: { speed: 8, accel: 6, handling: 4 },
+    glbUrl: 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/MaterialsVariantsShoe/glTF-Binary/MaterialsVariantsShoe.glb'
   },
   drifter: { 
     name: 'Drifter', 
     description: 'Perfect for sliding through corners.', 
-    stats: { speed: 6, accel: 7, handling: 8 }
+    stats: { speed: 6, accel: 7, handling: 8 },
+    glbUrl: 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/DamagedHelmet/glTF-Binary/DamagedHelmet.glb'
   },
   tank: { 
     name: 'Tank', 
     description: 'Heavy and stable, but slow acceleration.', 
-    stats: { speed: 5, accel: 4, handling: 9 }
+    stats: { speed: 5, accel: 4, handling: 9 },
+    glbUrl: 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Box/glTF-Binary/Box.glb'
   },
   interceptor: { 
     name: 'Interceptor', 
     description: 'Balanced performance.', 
-    stats: { speed: 7, accel: 7, handling: 7 }
+    stats: { speed: 7, accel: 7, handling: 7 },
+    glbUrl: 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Sphere/glTF-Binary/Sphere.glb'
   },
 };
 
