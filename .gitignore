@@ -1,3 +1,1 @@
-(src/constants/proStarRacingAssets.ts)
-
-(src/assets/character_sprite.json)
+Nothing should be ignored based on the provided file changes, as they only include source code files (.ts, .tsx) without any build artifacts, dependencies, or temporary files.
