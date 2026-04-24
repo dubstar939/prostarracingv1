@@ -4,6 +4,7 @@ import { audioManager } from '../services/audioService';
 import { Volume2, VolumeX, Pause, Play as PlayIcon, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Zap, Monitor } from 'lucide-react';
 
 import { drawCar, shadeColor } from '../utils/carRenderer';
+import { initializeCarSprites, areSpritesReady, drawCarSprite, getCachedSprites } from '../utils/carSpriteLoader';
 
 import { CarConfig, RaceMode, PERFORMANCE_PARTS, CarModelType } from '../types';
 
@@ -212,6 +213,20 @@ export const RacingGame: React.FC<RacingGameProps> = ({
   const SCREEN_HEIGHT = 600;
 
   useEffect(() => {
+    // Initialize car sprites on component mount
+    const initSprites = async () => {
+      try {
+        await initializeCarSprites();
+        console.log('Car sprite sheets initialized');
+      } catch (error) {
+        console.warn('Sprite initialization failed, will use procedural rendering:', error);
+      }
+    };
+    
+    initSprites();
+  }, []);
+
+  useEffect(() => {
     const checkMobile = () => {
       setIsMobile(/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 1024);
     };
@@ -242,7 +257,27 @@ export const RacingGame: React.FC<RacingGameProps> = ({
       ctx.ellipse(SCREEN_WIDTH / 2, SCREEN_HEIGHT - 100, 300, 100, 0, 0, Math.PI * 2);
       ctx.fill();
 
-      drawCar(ctx, SCREEN_WIDTH / 2, SCREEN_HEIGHT - 150, 300, 180, carConfig, false, 0, 0);
+      // Try to draw with sprite first, fallback to procedural
+      const spritesReady = areSpritesReady();
+      if (spritesReady) {
+        const spriteData = getCachedSprites('cars');
+        if (spriteData) {
+          // Draw rear view of car (frame 0 is typically rear view)
+          drawCarSprite(
+            ctx, 
+            SCREEN_WIDTH / 2, 
+            SCREEN_HEIGHT - 150, 
+            300, 
+            180, 
+            carConfig.model, 
+            0 // Frame 0 = rear view
+          );
+        } else {
+          drawCar(ctx, SCREEN_WIDTH / 2, SCREEN_HEIGHT - 150, 300, 180, carConfig, false, 0, 0);
+        }
+      } else {
+        drawCar(ctx, SCREEN_WIDTH / 2, SCREEN_HEIGHT - 150, 300, 180, carConfig, false, 0, 0);
+      }
       return;
     }
 
@@ -1251,7 +1286,29 @@ export const RacingGame: React.FC<RacingGameProps> = ({
               tires: 1,
               turbo: 1
             };
-            drawCar(ctx, oppX, oppY, oppW, oppH, oppConfig, true, 0, opp.visualAngle || 0, false);
+            
+            // Try sprite first for opponents
+            const spritesReady = areSpritesReady();
+            if (spritesReady) {
+              const rotationFrame = Math.abs(opp.visualAngle || 0) > 0.01 ? 
+                Math.min(12, Math.floor(Math.abs(opp.visualAngle || 0) * 20)) : 0;
+              
+              const spriteDrawn = drawCarSprite(
+                ctx,
+                oppX,
+                oppY,
+                oppW,
+                oppH,
+                oppConfig.model,
+                rotationFrame
+              );
+              
+              if (!spriteDrawn) {
+                drawCar(ctx, oppX, oppY, oppW, oppH, oppConfig, true, 0, opp.visualAngle || 0, false);
+              }
+            } else {
+              drawCar(ctx, oppX, oppY, oppW, oppH, oppConfig, true, 0, opp.visualAngle || 0, false);
+            }
 
             // Siren Effect
             if (opp.isPolice) {
@@ -1315,7 +1372,31 @@ export const RacingGame: React.FC<RacingGameProps> = ({
 
       ctx.globalAlpha = 1.0;
 
-      drawCar(ctx, SCREEN_WIDTH / 2, SCREEN_HEIGHT - 60, 180, 110, carConfig, isBraking, damage, driftAngle, turboActive);
+      // Draw player car with sprite if available, otherwise fallback to procedural
+      const spritesReady = areSpritesReady();
+      if (spritesReady) {
+        // Calculate rotation frame based on drift angle and steering
+        // driftAngle is in radians, convert to frame index
+        const rotationFrame = Math.abs(driftAngle) > 0.01 ? 
+          Math.min(12, Math.floor(Math.abs(driftAngle) * 20)) : 0;
+        
+        const spriteDrawn = drawCarSprite(
+          ctx,
+          SCREEN_WIDTH / 2,
+          SCREEN_HEIGHT - 60,
+          180,
+          110,
+          carConfig.model,
+          rotationFrame
+        );
+        
+        if (!spriteDrawn) {
+          // Fallback to procedural rendering
+          drawCar(ctx, SCREEN_WIDTH / 2, SCREEN_HEIGHT - 60, 180, 110, carConfig, isBraking, damage, driftAngle, turboActive);
+        }
+      } else {
+        drawCar(ctx, SCREEN_WIDTH / 2, SCREEN_HEIGHT - 60, 180, 110, carConfig, isBraking, damage, driftAngle, turboActive);
+      }
 
       // Rain Rendering
       if (weather === 'rain') {
