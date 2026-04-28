@@ -19,11 +19,18 @@ export const cars = Object.values(CAR_ASSETS);
 
 export type CarModel = 'speedster' | 'drifter' | 'tank' | 'interceptor';
 
-const MODEL_TO_ASSET: Record<CarModel, keyof typeof CAR_ASSETS> = {
+export const MODEL_TO_ASSET: Record<CarModel, keyof typeof CAR_ASSETS> = {
   speedster: 'car1',
   drifter: 'car2',
   tank: 'car3',
   interceptor: 'car4',
+};
+
+/**
+ * Get the GIF URL for a given car model.
+ */
+export const getCarAssetForModel = (model: CarModel): string => {
+  return CAR_ASSETS[MODEL_TO_ASSET[model]];
 };
 
 const imageCache: Map<keyof typeof CAR_ASSETS, HTMLImageElement> = new Map();

@@ -7,4 +7,6 @@ export {
   clearSpriteCache,
   CAR_ASSETS,
   cars,
+  MODEL_TO_ASSET,
+  getCarAssetForModel,
 } from './carSpriteLoader';

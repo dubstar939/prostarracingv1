@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { CarConfig, CAR_MODELS, BODY_KITS, DECALS, CarModelType, Inventory, PERFORMANCE_PARTS } from '../types';
 import { drawCar } from '../utils/carRenderer';
+import { getCarAssetForModel } from '../utils/carSpriteLoader';
 import ThreeCarPreview from './ThreeCarPreview';
 
 interface GarageProps {
@@ -166,19 +167,33 @@ export default function Garage({ carConfig, setCarConfig, money, setMoney, inven
                     <button
                       key={m}
                       onClick={() => updateConfig({ model: m })}
-                      className={`p-4 rounded-sm border text-left transition-all ${
+                      className={`p-4 rounded-sm border text-left transition-all flex items-center gap-4 ${
                         carConfig.model === m 
                           ? 'bg-white text-black border-white' 
                           : 'bg-zinc-900 text-white border-zinc-800 hover:border-zinc-700'
                       }`}
                     >
-                      <div className="flex justify-between items-center">
-                        <span className="font-black italic uppercase tracking-tight text-xl">{CAR_MODELS[m].name}</span>
-                        {carConfig.model === m && <Check className="w-5 h-5" />}
+                      <div
+                        className={`w-20 h-16 shrink-0 rounded-sm flex items-center justify-center overflow-hidden border ${
+                          carConfig.model === m ? 'bg-zinc-100 border-zinc-300' : 'bg-black/40 border-zinc-800'
+                        }`}
+                      >
+                        <img
+                          src={getCarAssetForModel(m)}
+                          alt={CAR_MODELS[m].name}
+                          className="max-w-full max-h-full object-contain"
+                          loading="lazy"
+                        />
                       </div>
-                      <p className={`text-xs mt-1 ${carConfig.model === m ? 'text-zinc-600' : 'text-zinc-500'}`}>
-                        {CAR_MODELS[m].description}
-                      </p>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex justify-between items-center gap-2">
+                          <span className="font-black italic uppercase tracking-tight text-xl truncate">{CAR_MODELS[m].name}</span>
+                          {carConfig.model === m && <Check className="w-5 h-5 shrink-0" />}
+                        </div>
+                        <p className={`text-xs mt-1 ${carConfig.model === m ? 'text-zinc-600' : 'text-zinc-500'}`}>
+                          {CAR_MODELS[m].description}
+                        </p>
+                      </div>
                     </button>
                   ))}
                 </div>
