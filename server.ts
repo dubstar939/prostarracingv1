@@ -8,18 +8,28 @@ const __dirname = path.dirname(__filename);
 
 async function startServer() {
   const app = express();
-  const PORT = 3000;
+  const PORT = Number(process.env.PORT) || 5000;
 
-  // Allow embedding in iframes (e.g., Google Sites)
+  // Allow embedding in iframes (e.g., Google Sites, Replit preview)
   app.use((req, res, next) => {
     res.removeHeader("X-Frame-Options");
     res.setHeader("Content-Security-Policy", "frame-ancestors *");
+    if (process.env.NODE_ENV !== "production") {
+      res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+      res.setHeader("Pragma", "no-cache");
+      res.setHeader("Expires", "0");
+      res.setHeader("Surrogate-Control", "no-store");
+    }
     next();
   });
 
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
-      server: { middlewareMode: true },
+      server: {
+        middlewareMode: true,
+        allowedHosts: true,
+        hmr: false,
+      },
       appType: "spa",
     });
     app.use(vite.middlewares);
