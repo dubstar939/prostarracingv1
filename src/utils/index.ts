@@ -1,12 +1,10 @@
 export { drawCar, shadeColor } from './carRenderer';
-export { 
-  loadImage, 
-  loadCarSprites, 
-  getCachedSprites, 
-  initializeCarSprites, 
-  getCarModelIndex, 
-  getRotationFrameIndex, 
-  drawCarSprite, 
+export {
+  loadImage,
+  initializeCarSprites,
+  drawCarSprite,
   areSpritesReady,
   clearSpriteCache,
+  CAR_ASSETS,
+  cars,
 } from './carSpriteLoader';

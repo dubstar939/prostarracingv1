@@ -1,134 +1,73 @@
 /**
  * Car Sprite Loader & Manager
- * Handles loading, caching, and extracting sprites from sprite sheets
+ * Loads the four per-car GIF assets and provides a deterministic CAR_ASSETS map.
  */
 
-// Sprite sheet configuration based on analysis:
-// cars.png: 1000x3900 - 4 cars x 13 rotation frames (250x300 per cell)
-// cars2.png: 745x258 - 3 additional car variants (248x258 per cell)
+import car1 from "../assets/car1.gif";
+import car2 from "../assets/car2.gif";
+import car3 from "../assets/car3.gif";
+import car4 from "../assets/car4.gif";
 
-export interface SpriteConfig {
-  spriteWidth: number;
-  spriteHeight: number;
-  columns: number;
-  rows: number;
-}
+export const CAR_ASSETS = {
+  car1,
+  car2,
+  car3,
+  car4,
+} as const;
 
-export interface CarSpriteData {
-  image: HTMLImageElement;
-  config: SpriteConfig;
-}
+export const cars = Object.values(CAR_ASSETS);
 
 export type CarModel = 'speedster' | 'drifter' | 'tank' | 'interceptor';
-export type RotationFrame = number; // 0-12 for 13 rotation angles
 
-// Cache for loaded images
-const imageCache: Map<string, CarSpriteData> = new Map();
+const MODEL_TO_ASSET: Record<CarModel, keyof typeof CAR_ASSETS> = {
+  speedster: 'car1',
+  drifter: 'car2',
+  tank: 'car3',
+  interceptor: 'car4',
+};
+
+const imageCache: Map<keyof typeof CAR_ASSETS, HTMLImageElement> = new Map();
 
 /**
- * Load an image from URL and return a promise that resolves when loaded
+ * Load an image from URL and return a promise that resolves when loaded.
  */
 export const loadImage = (src: string): Promise<HTMLImageElement> => {
   return new Promise((resolve, reject) => {
     const img = new Image();
-    img.crossOrigin = 'anonymous';
     img.onload = () => resolve(img);
-    img.onerror = (e) => reject(new Error(`Failed to load image: ${src}`));
+    img.onerror = () => reject(new Error(`Failed to load image: ${src}`));
     img.src = src;
   });
 };
 
 /**
- * Load and cache a car sprite sheet
- */
-export const loadCarSprites = async (
-  name: string,
-  src: string,
-  config: SpriteConfig
-): Promise<CarSpriteData> => {
-  if (imageCache.has(name)) {
-    return imageCache.get(name)!;
-  }
-
-  try {
-    const image = await loadImage(src);
-    const data: CarSpriteData = { image, config };
-    imageCache.set(name, data);
-    return data;
-  } catch (error) {
-    console.warn(`Failed to load sprite sheet ${name}:`, error);
-    throw error;
-  }
-};
-
-/**
- * Get cached sprite data
- */
-export const getCachedSprites = (name: string): CarSpriteData | undefined => {
-  return imageCache.get(name);
-};
-
-/**
- * Initialize all car sprite sheets
+ * Preload all four car GIFs into the in-memory cache.
  */
 export const initializeCarSprites = async (): Promise<void> => {
   try {
-    // Main car sprite sheet: 4 cars x 13 rotation frames
-    await loadCarSprites('cars', '/src/assets/cars.png', {
-      spriteWidth: 250,
-      spriteHeight: 300,
-      columns: 4,
-      rows: 13,
-    });
-
-    // Additional car variants: 3 cars x 1 frame (or could be different views)
-    await loadCarSprites('cars2', '/src/assets/cars2.png', {
-      spriteWidth: 248,
-      spriteHeight: 258,
-      columns: 3,
-      rows: 1,
-    });
-
+    await Promise.all(
+      (Object.keys(CAR_ASSETS) as Array<keyof typeof CAR_ASSETS>).map(async (key) => {
+        if (imageCache.has(key)) return;
+        const img = await loadImage(CAR_ASSETS[key]);
+        imageCache.set(key, img);
+      })
+    );
     console.log('Car sprites loaded successfully');
   } catch (error) {
-    console.warn('Some car sprites failed to load, will fallback to procedural rendering');
+    console.warn('Some car sprites failed to load, will fallback to procedural rendering:', error);
   }
 };
 
 /**
- * Get the sprite index for a car model
+ * Check if sprites are initialized and ready.
  */
-export const getCarModelIndex = (model: CarModel): number => {
-  const indices: Record<CarModel, number> = {
-    speedster: 0,
-    drifter: 1,
-    tank: 2,
-    interceptor: 3,
-  };
-  return indices[model];
+export const areSpritesReady = (): boolean => {
+  return imageCache.size === Object.keys(CAR_ASSETS).length;
 };
 
 /**
- * Get the rotation frame index based on angle
- * @param angle - Angle in radians (0 = facing up/north)
- * @returns Frame index (0-12 for 13 frames covering 360 degrees)
- */
-export const getRotationFrameIndex = (angle: number): number => {
-  // Normalize angle to 0-2PI
-  let normalizedAngle = angle % (2 * Math.PI);
-  if (normalizedAngle < 0) normalizedAngle += 2 * Math.PI;
-
-  // 13 frames cover 360 degrees, each frame covers ~27.69 degrees
-  const frameCount = 13;
-  const frameAngle = (2 * Math.PI) / frameCount;
-
-  // Calculate frame index
-  const frameIndex = Math.floor(normalizedAngle / frameAngle);
-  return frameIndex % frameCount;
-};
-
-/**
- * Draw a car sprite at the specified position
+ * Draw the car GIF for the given model at the specified position.
+ * Returns false if the asset isn't loaded yet so the caller can fall back.
  */
 export const drawCarSprite = (
   ctx: CanvasRenderingContext2D,
@@ -136,42 +75,19 @@ export const drawCarSprite = (
   y: number,
   width: number,
   height: number,
-  model: CarModel,
-  rotationFrame: number,
-  spriteSheet: 'cars' | 'cars2' = 'cars'
+  model: CarModel
 ): boolean => {
-  const spriteData = getCachedSprites(spriteSheet);
-  
-  if (!spriteData) {
-    return false; // Sprite not loaded, fallback needed
+  const assetKey = MODEL_TO_ASSET[model];
+  const image = imageCache.get(assetKey);
+  if (!image || !image.complete || image.naturalWidth === 0) {
+    return false;
   }
-
-  const { image, config } = spriteData;
-  const modelIndex = getCarModelIndex(model);
-
-  // Calculate source rectangle in sprite sheet
-  const srcX = modelIndex * config.spriteWidth;
-  const srcY = rotationFrame * config.spriteHeight;
-
-  // Draw the sprite
-  ctx.drawImage(
-    image,
-    srcX, srcY, config.spriteWidth, config.spriteHeight, // Source
-    x - width / 2, y - height, width, height // Destination (centered)
-  );
-
+  ctx.drawImage(image, x - width / 2, y - height, width, height);
   return true;
 };
 
 /**
- * Check if sprites are initialized and ready
- */
-export const areSpritesReady = (): boolean => {
-  return imageCache.size > 0;
-};
-
-/**
- * Clear sprite cache (useful for hot reloading)
+ * Clear sprite cache (useful for hot reloading).
  */
 export const clearSpriteCache = (): void => {
   imageCache.clear();
