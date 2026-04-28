@@ -4,7 +4,7 @@ import { audioManager } from '../services/audioService';
 import { Volume2, VolumeX, Pause, Play as PlayIcon, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Zap, Monitor } from 'lucide-react';
 
 import { drawCar, shadeColor } from '../utils/carRenderer';
-import { initializeCarSprites, areSpritesReady, drawCarSprite } from '../utils/carSpriteLoader';
+import { initializeCarSprites } from '../utils/carSpriteLoader';
 
 import { CarConfig, RaceMode, PERFORMANCE_PARTS, CarModelType } from '../types';
 
@@ -260,22 +260,9 @@ export const RacingGame: React.FC<RacingGameProps> = ({
       ctx.ellipse(SCREEN_WIDTH / 2, SCREEN_HEIGHT - 100, 300, 100, 0, 0, Math.PI * 2);
       ctx.fill();
 
-      // Try to draw with sprite first, fallback to procedural
-      if (areSpritesReady()) {
-        const spriteDrawn = drawCarSprite(
-          ctx,
-          SCREEN_WIDTH / 2,
-          SCREEN_HEIGHT - 150,
-          300,
-          180,
-          carConfig.model
-        );
-        if (!spriteDrawn) {
-          drawCar(ctx, SCREEN_WIDTH / 2, SCREEN_HEIGHT - 150, 300, 180, carConfig, false, 0, 0);
-        }
-      } else {
-        drawCar(ctx, SCREEN_WIDTH / 2, SCREEN_HEIGHT - 150, 300, 180, carConfig, false, 0, 0);
-      }
+      // Procedural rear-view renderer (the GIF assets are side-profile and
+      // not appropriate for the in-race behind-the-car perspective).
+      drawCar(ctx, SCREEN_WIDTH / 2, SCREEN_HEIGHT - 150, 300, 180, carConfig, false, 0, 0);
       return;
     }
 
@@ -1302,23 +1289,8 @@ export const RacingGame: React.FC<RacingGameProps> = ({
               turbo: 1
             };
             
-            // Try sprite first for opponents
-            if (areSpritesReady()) {
-              const spriteDrawn = drawCarSprite(
-                ctx,
-                oppX,
-                oppY,
-                oppW,
-                oppH,
-                oppConfig.model
-              );
-
-              if (!spriteDrawn) {
-                drawCar(ctx, oppX, oppY, oppW, oppH, oppConfig, true, 0, opp.visualAngle || 0, false);
-              }
-            } else {
-              drawCar(ctx, oppX, oppY, oppW, oppH, oppConfig, true, 0, opp.visualAngle || 0, false);
-            }
+            // Procedural rear-view renderer (GIF assets are side-profile only).
+            drawCar(ctx, oppX, oppY, oppW, oppH, oppConfig, true, 0, opp.visualAngle || 0, false);
 
             // Siren Effect
             if (opp.isPolice) {
@@ -1382,24 +1354,9 @@ export const RacingGame: React.FC<RacingGameProps> = ({
 
       ctx.globalAlpha = 1.0;
 
-      // Draw player car with sprite if available, otherwise fallback to procedural
-      if (areSpritesReady()) {
-        const spriteDrawn = drawCarSprite(
-          ctx,
-          SCREEN_WIDTH / 2,
-          SCREEN_HEIGHT - 60,
-          180,
-          110,
-          carConfig.model
-        );
-
-        if (!spriteDrawn) {
-          // Fallback to procedural rendering
-          drawCar(ctx, SCREEN_WIDTH / 2, SCREEN_HEIGHT - 60, 180, 110, carConfig, isBraking, damage, driftAngle, turboActive);
-        }
-      } else {
-        drawCar(ctx, SCREEN_WIDTH / 2, SCREEN_HEIGHT - 60, 180, 110, carConfig, isBraking, damage, driftAngle, turboActive);
-      }
+      // Procedural rear-view renderer (the GIF assets are side-profile only,
+      // which doesn't match the behind-the-car driving perspective).
+      drawCar(ctx, SCREEN_WIDTH / 2, SCREEN_HEIGHT - 60, 180, 110, carConfig, isBraking, damage, driftAngle, turboActive);
 
       // Rain Rendering
       if (weather === 'rain') {
