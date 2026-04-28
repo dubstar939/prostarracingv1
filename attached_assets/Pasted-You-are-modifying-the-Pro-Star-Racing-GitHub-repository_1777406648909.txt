@@ -1,0 +1,86 @@
+You are modifying the Pro Star-Racing GitHub repository. Follow these rules with zero deviation:
+
+====================================================
+GLOBAL RULES
+====================================================
+1. Do NOT invent files, folders, variables, or assets.
+2. Only reference real files that exist in the repo:
+   /src/assets/car1.gif
+   /src/assets/car2.gif
+   /src/assets/car3.gif
+   /src/assets/car4.gif
+3. The old car assets have been deleted. Remove ALL references to them.
+4. Auto-detect all files that still reference old filenames and patch them.
+5. Apply minimal, surgical patches only—no rewrites unless required.
+6. Output ONLY unified diffs (---/+++ format) for each modified file.
+
+====================================================
+REPO SCAN INSTRUCTIONS
+====================================================
+Search the entire project for ANY of the following patterns:
+
+- old PNG or GIF filenames (anything NOT car1.gif–car4.gif)
+- import ... from "../assets/"
+- import ... from "./assets/"
+- carSprites
+- carModels
+- carImages
+- CAR_ASSETS
+- spriteMap
+- preload([...])
+- arrays of car image paths
+- car selection UI references
+- rendering logic referencing old car assets
+
+Identify all files that contain these patterns.
+
+====================================================
+REMOVAL RULES
+====================================================
+1. Remove ALL imports referencing deleted files.
+2. Remove ALL arrays or objects containing old filenames.
+3. Remove ALL preload calls referencing deleted assets.
+4. Remove ALL sprite maps referencing deleted assets.
+5. Remove ALL car selection entries referencing deleted assets.
+
+====================================================
+REPLACEMENT RULES
+====================================================
+Replace ALL old references with the new deterministic asset map:
+
+   import car1 from "./assets/car1.gif";
+   import car2 from "./assets/car2.gif";
+   import car3 from "./assets/car3.gif";
+   import car4 from "./assets/car4.gif";
+
+   export const CAR_ASSETS = {
+     car1,
+     car2,
+     car3,
+     car4
+   };
+
+Replace ANY old car arrays with:
+
+   export const cars = Object.values(CAR_ASSETS);
+
+Update ALL rendering, preload, and selection logic to use CAR_ASSETS.
+
+====================================================
+OUTPUT FORMAT
+====================================================
+For each file changed, output:
+
+--- a/<filepath>
++++ b/<filepath>
+@@ <line numbers> @@
+<only the modified lines>
+
+No explanations.
+No commentary.
+No summaries.
+No extra text.
+
+====================================================
+BEGIN PATCHING NOW
+====================================================
