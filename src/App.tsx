@@ -158,10 +158,23 @@ export default function App() {
     'racing_car_config', 
     getDefaultCarConfig()
   );
-  const [inventory, setInventory] = useLocalStorageState<Inventory>(
+  const [inventory, setInventoryRaw] = useLocalStorageState<Inventory>(
     'racing_inventory', 
     getDefaultInventory()
   );
+  // Migrate older stored inventories that pre-date the `cars` field.
+  const setInventory: React.Dispatch<React.SetStateAction<Inventory>> = (value) => {
+    setInventoryRaw((prev) => {
+      const next = typeof value === 'function' ? (value as (p: Inventory) => Inventory)(prev) : value;
+      return { ...next, cars: next.cars && next.cars.length ? next.cars : ['speedster'] };
+    });
+  };
+  useEffect(() => {
+    if (!inventory.cars || inventory.cars.length === 0) {
+      setInventoryRaw({ ...inventory, cars: ['speedster'] });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const coverImage = useCoverImage();
 
@@ -214,7 +227,7 @@ export default function App() {
     }
     setLevel(1);
     setMoney(0);
-    setInventory({ engines: [1], tires: [1], turbos: [1] });
+    setInventory({ engines: [1], tires: [1], turbos: [1], cars: ['speedster'] });
     window.location.reload();
   };
 

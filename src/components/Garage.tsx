@@ -163,39 +163,49 @@ export default function Garage({ carConfig, setCarConfig, money, setMoney, inven
               >
                 <h3 className="text-sm font-bold uppercase tracking-widest text-zinc-400">Select Chassis</h3>
                 <div className="grid grid-cols-1 gap-3">
-                  {(Object.keys(CAR_MODELS) as CarModelType[]).map((m) => (
-                    <button
-                      key={m}
-                      onClick={() => updateConfig({ model: m })}
-                      className={`p-4 rounded-sm border text-left transition-all flex items-center gap-4 ${
-                        carConfig.model === m 
-                          ? 'bg-white text-black border-white' 
-                          : 'bg-zinc-900 text-white border-zinc-800 hover:border-zinc-700'
-                      }`}
-                    >
-                      <div
-                        className={`w-20 h-16 shrink-0 rounded-sm flex items-center justify-center overflow-hidden border ${
-                          carConfig.model === m ? 'bg-zinc-100 border-zinc-300' : 'bg-black/40 border-zinc-800'
+                  {(Object.keys(CAR_MODELS) as CarModelType[]).map((m) => {
+                    const isOwned = inventory.cars.includes(m);
+                    const isSelected = carConfig.model === m;
+                    return (
+                      <button
+                        key={m}
+                        onClick={() => isOwned && updateConfig({ model: m })}
+                        disabled={!isOwned}
+                        className={`p-4 rounded-sm border text-left transition-all flex items-center gap-4 ${
+                          isSelected
+                            ? 'bg-white text-black border-white'
+                            : isOwned
+                              ? 'bg-zinc-900 text-white border-zinc-800 hover:border-zinc-700'
+                              : 'bg-zinc-900/40 text-zinc-500 border-zinc-800 cursor-not-allowed'
                         }`}
                       >
-                        <img
-                          src={getCarAssetForModel(m)}
-                          alt={CAR_MODELS[m].name}
-                          className="max-w-full max-h-full object-contain"
-                          loading="lazy"
-                        />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex justify-between items-center gap-2">
-                          <span className="font-black italic uppercase tracking-tight text-xl truncate">{CAR_MODELS[m].name}</span>
-                          {carConfig.model === m && <Check className="w-5 h-5 shrink-0" />}
+                        <div
+                          className={`w-20 h-16 shrink-0 rounded-sm flex items-center justify-center overflow-hidden border ${
+                            isSelected ? 'bg-zinc-100 border-zinc-300' : 'bg-black/40 border-zinc-800'
+                          }`}
+                        >
+                          <img
+                            src={getCarAssetForModel(m)}
+                            alt={CAR_MODELS[m].name}
+                            className={`max-w-full max-h-full object-contain ${isOwned ? '' : 'opacity-40 grayscale'}`}
+                            loading="lazy"
+                          />
                         </div>
-                        <p className={`text-xs mt-1 ${carConfig.model === m ? 'text-zinc-600' : 'text-zinc-500'}`}>
-                          {CAR_MODELS[m].description}
-                        </p>
-                      </div>
-                    </button>
-                  ))}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex justify-between items-center gap-2">
+                            <span className="font-black italic uppercase tracking-tight text-xl truncate">{CAR_MODELS[m].name}</span>
+                            {isSelected && <Check className="w-5 h-5 shrink-0" />}
+                            {!isOwned && <Lock className="w-4 h-4 shrink-0 text-zinc-500" />}
+                          </div>
+                          <p className={`text-xs mt-1 ${isSelected ? 'text-zinc-600' : isOwned ? 'text-zinc-500' : 'text-zinc-600'}`}>
+                            {isOwned
+                              ? CAR_MODELS[m].description
+                              : `Locked — buy at the Store for $${(CAR_MODELS[m].price ?? 0).toLocaleString()}`}
+                          </p>
+                        </div>
+                      </button>
+                    );
+                  })}
                 </div>
               </motion.div>
             )}
