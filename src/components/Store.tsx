@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowLeft, Wrench, CircleDashed, Zap, Car as CarIcon } from 'lucide-react';
+import { ArrowLeft, Wrench, CircleDashed, Zap, Car as CarIcon, Lock } from 'lucide-react';
 import { Inventory, PERFORMANCE_PARTS, CAR_MODELS, CarModelType } from '../types';
 import { getCarAssetForModel } from '../utils/carSpriteLoader';
 
@@ -8,10 +8,11 @@ interface StoreProps {
   setMoney: (money: number) => void;
   inventory: Inventory;
   setInventory: (inv: Inventory) => void;
+  level: number;
   onBack: () => void;
 }
 
-export default function Store({ money, setMoney, inventory, setInventory, onBack }: StoreProps) {
+export default function Store({ money, setMoney, inventory, setInventory, level, onBack }: StoreProps) {
   type PartInventoryKey = 'engines' | 'turbos' | 'tires';
   const getInventoryKey = (category: keyof typeof PERFORMANCE_PARTS): PartInventoryKey => {
     if (category === 'engine') return 'engines';
@@ -126,6 +127,7 @@ export default function Store({ money, setMoney, inventory, setInventory, onBack
             {(Object.keys(CAR_MODELS) as CarModelType[]).map((model) => {
               const info = CAR_MODELS[model];
               const isOwned = inventory.cars.includes(model);
+              const isDiscovered = (info.unlockLevel ?? 1) <= level;
               const price = info.price ?? 0;
               const canAfford = money >= price;
 
@@ -135,43 +137,62 @@ export default function Store({ money, setMoney, inventory, setInventory, onBack
                   className={`flex flex-col rounded-md border overflow-hidden ${
                     isOwned
                       ? 'bg-emerald-900/20 border-emerald-900/50'
-                      : 'bg-black/40 border-zinc-800'
+                      : isDiscovered
+                        ? 'bg-black/40 border-zinc-800'
+                        : 'bg-black/60 border-zinc-900'
                   }`}
                 >
-                  <div className="aspect-[4/3] bg-gradient-to-b from-zinc-900 to-black flex items-center justify-center p-3">
+                  <div className="aspect-[4/3] bg-gradient-to-b from-zinc-900 to-black flex items-center justify-center p-3 relative">
                     <img
                       src={getCarAssetForModel(model)}
-                      alt={info.name}
-                      className="max-w-full max-h-full object-contain"
+                      alt={isDiscovered ? info.name : 'Locked chassis'}
+                      className={`max-w-full max-h-full object-contain ${isDiscovered ? '' : 'opacity-20 brightness-0'}`}
                       loading="lazy"
                     />
+                    {!isDiscovered && (
+                      <Lock className="absolute w-8 h-8 text-zinc-600" />
+                    )}
                   </div>
                   <div className="p-4 flex flex-col gap-2 flex-1">
-                    <span className="font-black italic uppercase tracking-tight text-xl">{info.name}</span>
-                    <p className="text-xs text-zinc-400 flex-1">{info.description}</p>
-                    <div className="flex flex-wrap gap-2 text-[10px] uppercase tracking-widest text-zinc-500">
-                      {Object.entries(info.stats).map(([stat, val]) => (
-                        <span key={stat}>
-                          {stat}: <span className="text-cyan-400 font-bold">{val}</span>
-                        </span>
-                      ))}
-                    </div>
-                    {isOwned ? (
-                      <div className="mt-2 px-4 py-2 bg-emerald-900/40 text-emerald-400 font-bold rounded-sm text-sm uppercase tracking-wider border border-emerald-800 text-center">
-                        Owned
-                      </div>
+                    {isDiscovered ? (
+                      <>
+                        <span className="font-black italic uppercase tracking-tight text-xl">{info.name}</span>
+                        <p className="text-xs text-zinc-400 flex-1">{info.description}</p>
+                        <div className="flex flex-wrap gap-2 text-[10px] uppercase tracking-widest text-zinc-500">
+                          {Object.entries(info.stats).map(([stat, val]) => (
+                            <span key={stat}>
+                              {stat}: <span className="text-cyan-400 font-bold">{val}</span>
+                            </span>
+                          ))}
+                        </div>
+                        {isOwned ? (
+                          <div className="mt-2 px-4 py-2 bg-emerald-900/40 text-emerald-400 font-bold rounded-sm text-sm uppercase tracking-wider border border-emerald-800 text-center">
+                            Owned
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => handleBuyCar(model, price)}
+                            disabled={!canAfford}
+                            className={`mt-2 px-4 py-2 font-bold rounded-sm text-sm uppercase tracking-wider transition-colors ${
+                              canAfford
+                                ? 'bg-cyan-600 hover:bg-cyan-500 text-white'
+                                : 'bg-zinc-800 text-zinc-500 cursor-not-allowed'
+                            }`}
+                          >
+                            ${price.toLocaleString()}
+                          </button>
+                        )}
+                      </>
                     ) : (
-                      <button
-                        onClick={() => handleBuyCar(model, price)}
-                        disabled={!canAfford}
-                        className={`mt-2 px-4 py-2 font-bold rounded-sm text-sm uppercase tracking-wider transition-colors ${
-                          canAfford
-                            ? 'bg-cyan-600 hover:bg-cyan-500 text-white'
-                            : 'bg-zinc-800 text-zinc-500 cursor-not-allowed'
-                        }`}
-                      >
-                        ${price.toLocaleString()}
-                      </button>
+                      <>
+                        <span className="font-black italic uppercase tracking-tight text-xl text-zinc-600">??????</span>
+                        <p className="text-xs text-zinc-500 flex-1">
+                          A new chassis surfaces in the underground at higher levels.
+                        </p>
+                        <div className="mt-2 px-4 py-2 bg-zinc-900 text-zinc-500 font-bold rounded-sm text-xs uppercase tracking-wider border border-zinc-800 text-center">
+                          Race to Level {info.unlockLevel} to discover
+                        </div>
+                      </>
                     )}
                   </div>
                 </div>

@@ -17,11 +17,14 @@ import Store from './components/Store';
 import { 
   CarConfig, 
   CAR_MODELS, 
+  CarModelType,
   RaceMode, 
   Inventory,
   getDefaultCarConfig,
   getDefaultInventory,
+  getChassisIntroducedAtLevel,
 } from './types';
+import { getCarAssetForModel } from './utils';
 
 // ============================================================================
 // Type Definitions
@@ -43,6 +46,7 @@ interface RaceResult {
   time: string;
   reward: number;
   score?: number;
+  unlockedChassis?: CarModelType;
 }
 
 // ============================================================================
@@ -182,7 +186,12 @@ export default function App() {
     setGameState('playing');
   };
 
-  const handleRaceEnd = (position: number, time: number, score?: number) => {
+  const handleRaceEnd = (
+    position: number,
+    time: number,
+    score?: number,
+    opponentModels?: CarModelType[],
+  ) => {
     const timeStr = position === 99 ? 'BUSTED' : (time / 1000).toFixed(2) + 's';
     let reward = Math.max(0, (10 - position) * 200 + (position === 1 ? 500 : 0));
     
@@ -204,7 +213,25 @@ export default function App() {
     }
 
     setMoney(prev => prev + reward);
-    setLastResult({ position, time: timeStr, reward, score });
+
+    // On a win, unlock the highest-tier opponent chassis the player doesn't yet own.
+    let unlockedChassis: CarModelType | undefined;
+    if (position === 1 && opponentModels && opponentModels.length > 0) {
+      const owned = new Set(inventory.cars);
+      const candidates = opponentModels.filter((m) => !owned.has(m));
+      if (candidates.length > 0) {
+        candidates.sort(
+          (a, b) => (CAR_MODELS[b].unlockLevel ?? 0) - (CAR_MODELS[a].unlockLevel ?? 0),
+        );
+        unlockedChassis = candidates[0];
+        setInventory((prev) => ({
+          ...prev,
+          cars: prev.cars.includes(unlockedChassis!) ? prev.cars : [...prev.cars, unlockedChassis!],
+        }));
+      }
+    }
+
+    setLastResult({ position, time: timeStr, reward, score, unlockedChassis });
     
     if (position === 1) {
       setGameState('level-complete');
@@ -499,6 +526,7 @@ export default function App() {
               carConfig={carConfig}
               setCarConfig={setCarConfig}
               mode={raceMode}
+              availableOpponentModels={getChassisIntroducedAtLevel(level)}
               onRaceEnd={handleRaceEnd} 
               onBack={() => setGameState('menu')}
             />
@@ -522,6 +550,7 @@ export default function App() {
             setMoney={setMoney}
             inventory={inventory}
             setInventory={setInventory}
+            level={level}
             onBack={() => setGameState('menu')}
           />
         )}
@@ -589,6 +618,29 @@ export default function App() {
               )}
               <p className="text-emerald-400 font-mono">Reward: +${lastResult?.reward}</p>
             </div>
+
+            {lastResult?.unlockedChassis && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+                className="mx-auto max-w-sm bg-cyan-900/20 border border-cyan-700/50 rounded-sm p-4 flex items-center gap-4"
+              >
+                <img
+                  src={getCarAssetForModel(lastResult.unlockedChassis)}
+                  alt={CAR_MODELS[lastResult.unlockedChassis].name}
+                  className="w-20 h-16 object-contain shrink-0"
+                />
+                <div className="text-left">
+                  <p className="text-cyan-400 font-mono text-[10px] uppercase tracking-widest">New Chassis Unlocked</p>
+                  <p className="text-xl font-black italic uppercase tracking-tight">
+                    {CAR_MODELS[lastResult.unlockedChassis].name}
+                  </p>
+                  <p className="text-xs text-zinc-400">Available in your Garage now.</p>
+                </div>
+              </motion.div>
+            )}
+
             <div className="flex flex-col gap-3">
               <button
                 onClick={nextLevel}

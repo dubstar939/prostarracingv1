@@ -84,6 +84,8 @@ export interface CarModelInfo {
   name: string;
   description: string;
   price?: number;
+  /** Player level at which this chassis is introduced as an opponent (and revealed in the Store). */
+  unlockLevel: number;
   stats: CarStats;
   glbUrl?: string;
 }
@@ -187,6 +189,7 @@ export const CAR_MODELS: Record<CarModelType, CarModelInfo> = {
     name: 'Speedster', 
     description: 'High top speed, lower handling.', 
     price: 0,
+    unlockLevel: 1,
     stats: { speed: 8, accel: 6, handling: 4 },
     glbUrl: 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/MaterialsVariantsShoe/glTF-Binary/MaterialsVariantsShoe.glb'
   },
@@ -194,6 +197,7 @@ export const CAR_MODELS: Record<CarModelType, CarModelInfo> = {
     name: 'Drifter', 
     description: 'Perfect for sliding through corners.', 
     price: 5000,
+    unlockLevel: 2,
     stats: { speed: 6, accel: 7, handling: 8 },
     glbUrl: 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/DamagedHelmet/glTF-Binary/DamagedHelmet.glb'
   },
@@ -201,6 +205,7 @@ export const CAR_MODELS: Record<CarModelType, CarModelInfo> = {
     name: 'Tank', 
     description: 'Heavy and stable, but slow acceleration.', 
     price: 7500,
+    unlockLevel: 4,
     stats: { speed: 5, accel: 4, handling: 9 },
     glbUrl: 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Box/glTF-Binary/Box.glb'
   },
@@ -208,9 +213,21 @@ export const CAR_MODELS: Record<CarModelType, CarModelInfo> = {
     name: 'Interceptor', 
     description: 'Balanced performance.', 
     price: 12000,
+    unlockLevel: 6,
     stats: { speed: 7, accel: 7, handling: 7 },
     glbUrl: 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Sphere/glTF-Binary/Sphere.glb'
   },
+};
+
+/**
+ * Returns the chassis introduced as opponents up to the given player level.
+ * Always includes at least the speedster so a level-1 race can be populated.
+ */
+export const getChassisIntroducedAtLevel = (level: number): CarModelType[] => {
+  const intros = (Object.keys(CAR_MODELS) as CarModelType[]).filter(
+    (m) => CAR_MODELS[m].unlockLevel <= level
+  );
+  return intros.length > 0 ? intros : ['speedster'];
 };
 
 // ============================================================================

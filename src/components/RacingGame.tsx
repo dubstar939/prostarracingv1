@@ -35,8 +35,10 @@ interface RacingGameProps {
   setCarConfig: React.Dispatch<React.SetStateAction<CarConfig>>;
   /** The game mode (e.g., career, quick race). */
   mode: RaceMode;
-  /** Callback triggered when the race finishes. */
-  onRaceEnd: (position: number, time: number, score?: number) => void;
+  /** Chassis the player has been introduced to (used to populate AI opponents). */
+  availableOpponentModels: CarModelType[];
+  /** Callback triggered when the race finishes. The 4th arg is the list of opponent chassis featured in this race (used to grant unlocks on a win). */
+  onRaceEnd: (position: number, time: number, score?: number, opponentModels?: CarModelType[]) => void;
   /** Callback to return to the previous menu. */
   onBack: () => void;
 }
@@ -169,6 +171,7 @@ export const RacingGame: React.FC<RacingGameProps> = ({
   carConfig, 
   setCarConfig, 
   mode, 
+  availableOpponentModels,
   onRaceEnd, 
   onBack 
 }) => {
@@ -354,7 +357,14 @@ export const RacingGame: React.FC<RacingGameProps> = ({
         sirenTimer: 0
       }
     ] : Array.from({ length: 7 }, (_, i) => {
-      const models: CarModelType[] = ['speedster', 'drifter', 'tank', 'interceptor'];
+      const models: CarModelType[] = availableOpponentModels.length > 0
+        ? availableOpponentModels
+        : ['speedster'];
+      // Make sure the newest-introduced chassis appears in at least one slot,
+      // so winning a race that just unlocked it grants the player the new car.
+      const newest = models[models.length - 1];
+      const pickedModel: CarModelType =
+        i === 0 ? newest : models[Math.floor(Math.random() * models.length)];
       return {
         name: `CPU ${i + 1}`,
         offset: (i % 2 === 0 ? 0.5 : -0.5) + (Math.random() - 0.5) * 0.2,
@@ -365,7 +375,7 @@ export const RacingGame: React.FC<RacingGameProps> = ({
         color: ['#ef4444', '#3b82f6', '#facc15', '#a855f7', '#ec4899', '#f97316', '#06b6d4', '#8b5cf6'][Math.floor(Math.random() * 8)],
         plate: generatePlate(),
         visualAngle: 0,
-        model: models[Math.floor(Math.random() * models.length)]
+        model: pickedModel
       };
     });
 
@@ -770,7 +780,12 @@ export const RacingGame: React.FC<RacingGameProps> = ({
         if (lap > totalLaps) {
           finished = true;
           const pos = opponents.filter(o => o.z > position).length + 1;
-          onRaceEnd(pos, Date.now() - startTime, Math.floor(totalDriftScore));
+          onRaceEnd(
+            pos,
+            Date.now() - startTime,
+            Math.floor(totalDriftScore),
+            opponents.map((o) => o.model)
+          );
           return;
         }
       }
@@ -975,7 +990,7 @@ export const RacingGame: React.FC<RacingGameProps> = ({
           if (bustTimer > 3) {
             isBusted = true;
             finished = true;
-            onRaceEnd(99, Date.now() - startTime);
+            onRaceEnd(99, Date.now() - startTime, undefined, opponents.map((o) => o.model));
           }
         } else if (opp.isPolice) {
           bustTimer = Math.max(0, bustTimer - dt);
@@ -1109,7 +1124,12 @@ export const RacingGame: React.FC<RacingGameProps> = ({
         if (playerSP <= 0 || rivalSP <= 0) {
           finished = true;
           audioManager.stopMusic();
-          onRaceEnd(playerSP > 0 ? 1 : 2, Date.now() - startTime);
+          onRaceEnd(
+            playerSP > 0 ? 1 : 2,
+            Date.now() - startTime,
+            undefined,
+            opponents.map((o) => o.model)
+          );
           return;
         }
       }
