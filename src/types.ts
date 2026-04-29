@@ -5,7 +5,15 @@
 /**
  * Available car models in the game.
  */
-export type CarModelType = 'speedster' | 'drifter' | 'tank' | 'interceptor';
+export type CarModelType =
+  | 'speedster'
+  | 'drifter'
+  | 'tank'
+  | 'interceptor'
+  | 'muscle'
+  | 'rally'
+  | 'prototype'
+  | 'stealth';
 
 /**
  * Available track biomes/environments.
@@ -185,37 +193,61 @@ export const PERFORMANCE_PARTS: PerformancePartsCatalog = {
  * Car models with their specifications.
  */
 export const CAR_MODELS: Record<CarModelType, CarModelInfo> = {
-  speedster: { 
-    name: 'Speedster', 
-    description: 'High top speed, lower handling.', 
+  speedster: {
+    name: 'Speedster',
+    description: 'Razor-sharp wedge with screaming top end. Treacherous in tight corners.',
     price: 0,
     unlockLevel: 1,
     stats: { speed: 8, accel: 6, handling: 4 },
-    glbUrl: 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/MaterialsVariantsShoe/glTF-Binary/MaterialsVariantsShoe.glb'
   },
-  drifter: { 
-    name: 'Drifter', 
-    description: 'Perfect for sliding through corners.', 
+  drifter: {
+    name: 'Drifter',
+    description: 'Lightweight sled built to throw sideways through every apex.',
     price: 5000,
     unlockLevel: 2,
     stats: { speed: 6, accel: 7, handling: 8 },
-    glbUrl: 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/DamagedHelmet/glTF-Binary/DamagedHelmet.glb'
   },
-  tank: { 
-    name: 'Tank', 
-    description: 'Heavy and stable, but slow acceleration.', 
+  muscle: {
+    name: 'Muscle',
+    description: 'Brutal hood-scoop straight-line monster. Off the line it eats anything.',
+    price: 6500,
+    unlockLevel: 3,
+    stats: { speed: 7, accel: 9, handling: 5 },
+  },
+  tank: {
+    name: 'Tank',
+    description: 'Six-wheel armored bruiser. Slow to spool, impossible to push around.',
     price: 7500,
     unlockLevel: 4,
     stats: { speed: 5, accel: 4, handling: 9 },
-    glbUrl: 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Box/glTF-Binary/Box.glb'
   },
-  interceptor: { 
-    name: 'Interceptor', 
-    description: 'Balanced performance.', 
+  rally: {
+    name: 'Rally',
+    description: 'Tall stance, roof rack, light pods. Eats rain and gravel for breakfast.',
+    price: 10000,
+    unlockLevel: 5,
+    stats: { speed: 6, accel: 7, handling: 9 },
+  },
+  interceptor: {
+    name: 'Interceptor',
+    description: 'Pursuit-spec all-rounder with a strobing roof bar. Balanced performer.',
     price: 12000,
     unlockLevel: 6,
     stats: { speed: 7, accel: 7, handling: 7 },
-    glbUrl: 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Sphere/glTF-Binary/Sphere.glb'
+  },
+  prototype: {
+    name: 'Prototype',
+    description: 'Open-cockpit experimental hypercar. Sharkfin canopy, jet-engine pull.',
+    price: 25000,
+    unlockLevel: 8,
+    stats: { speed: 10, accel: 8, handling: 6 },
+  },
+  stealth: {
+    name: 'Stealth',
+    description: 'Faceted radar-absorbing wedge. Endgame chassis with no weak stat.',
+    price: 40000,
+    unlockLevel: 10,
+    stats: { speed: 9, accel: 9, handling: 9 },
   },
 };
 

@@ -28,9 +28,22 @@ const drawUnderglow = (ctx: CanvasRenderingContext2D, x: number, y: number, w: n
 };
 
 const drawTires = (ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, config: CarConfig) => {
-  const tireWidth = (w * 0.2 + (config.tires * 2)) * (config.model === 'tank' ? 1.5 : (config.model === 'drifter' ? 1.2 : 1.1));
-  const tireHeight = h * 0.35;
-  const tireY = y - h * 0.15;
+  const profileMul =
+    config.model === 'tank' ? 1.5 :
+    config.model === 'muscle' ? 1.35 :
+    config.model === 'rally' ? 1.3 :
+    config.model === 'drifter' ? 1.2 :
+    config.model === 'prototype' ? 0.9 :
+    config.model === 'stealth' ? 1.0 :
+    1.1;
+  const tireWidth = (w * 0.2 + (config.tires * 2)) * profileMul;
+  const tireHeightMul =
+    config.model === 'rally' ? 0.45 :
+    config.model === 'prototype' ? 0.28 :
+    config.model === 'stealth' ? 0.3 :
+    0.35;
+  const tireHeight = h * tireHeightMul;
+  const tireY = y - h * (config.model === 'rally' ? 0.05 : 0.15);
 
   const drawWheel = (wx: number, wy: number) => {
     // Tire
@@ -71,18 +84,21 @@ const drawTires = (ctx: CanvasRenderingContext2D, x: number, y: number, w: numbe
 };
 
 const drawSpoiler = (ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, config: CarConfig) => {
-  if (config.spoiler === 'none' && config.model !== 'interceptor') return;
+  const forcedLarge = config.model === 'interceptor' || config.model === 'prototype';
+  const forcedSmall = config.model === 'stealth' || config.model === 'muscle';
+  if (config.spoiler === 'none' && !forcedLarge && !forcedSmall) return;
 
   let wingHeight = 20;
   let wingWidth = w * 0.8;
   let mountOffset = 0.2;
-  
-  if (config.spoiler === 'small') {
+
+  if (config.spoiler === 'small' || forcedSmall) {
     wingHeight = 25;
     wingWidth = w * 0.85;
-  } else if (config.spoiler === 'large' || config.model === 'interceptor') {
-    wingHeight = 45;
-    wingWidth = w * 1.1;
+  }
+  if (config.spoiler === 'large' || forcedLarge) {
+    wingHeight = config.model === 'prototype' ? 60 : 45;
+    wingWidth = config.model === 'prototype' ? w * 1.25 : w * 1.1;
     mountOffset = 0.3;
   }
 
@@ -96,7 +112,7 @@ const drawSpoiler = (ctx: CanvasRenderingContext2D, x: number, y: number, w: num
   wingGrad.addColorStop(0, '#333');
   wingGrad.addColorStop(1, '#000');
   ctx.fillStyle = wingGrad;
-  
+
   ctx.beginPath();
   ctx.moveTo(x - wingWidth / 2, y - h - wingHeight);
   ctx.lineTo(x + wingWidth / 2, y - h - wingHeight);
@@ -106,7 +122,7 @@ const drawSpoiler = (ctx: CanvasRenderingContext2D, x: number, y: number, w: num
   ctx.fill();
 
   // Wing Endplates
-  if (config.spoiler === 'large' || config.model === 'interceptor') {
+  if (config.spoiler === 'large' || forcedLarge) {
     ctx.fillStyle = config.color;
     ctx.fillRect(x - wingWidth / 2 - 2, y - h - wingHeight - 5, 4, 25);
     ctx.fillRect(x + wingWidth / 2 - 2, y - h - wingHeight - 5, 4, 25);
@@ -146,27 +162,57 @@ const drawMainBody = (ctx: CanvasRenderingContext2D, x: number, y: number, w: nu
     return val + (Math.random() - 0.5) * (damage / 8);
   };
 
-  // Simplified clean low-poly geometry
+  // Body silhouette per chassis (rear 3/4 view)
   if (config.model === 'speedster') {
+    // Sleek wedge — narrow shoulders tapering inward
     ctx.moveTo(dent(x - w * 0.48), dent(y - h * 0.05));
-    ctx.lineTo(dent(x - w * 0.45), dent(y - h * 0.55));
-    ctx.lineTo(dent(x + w * 0.45), dent(y - h * 0.55));
+    ctx.lineTo(dent(x - w * 0.42), dent(y - h * 0.58));
+    ctx.lineTo(dent(x + w * 0.42), dent(y - h * 0.58));
     ctx.lineTo(dent(x + w * 0.48), dent(y - h * 0.05));
   } else if (config.model === 'tank') {
+    // Boxy SUV — vertical sides
     ctx.moveTo(dent(x - w * 0.52), dent(y - h * 0.05));
     ctx.lineTo(dent(x - w * 0.52), dent(y - h * 0.65));
     ctx.lineTo(dent(x + w * 0.52), dent(y - h * 0.65));
     ctx.lineTo(dent(x + w * 0.52), dent(y - h * 0.05));
   } else if (config.model === 'drifter') {
+    // Aggressive low slung — flared rear
+    ctx.moveTo(dent(x - w * 0.52), dent(y - h * 0.05));
+    ctx.lineTo(dent(x - w * 0.4), dent(y - h * 0.6));
+    ctx.lineTo(dent(x + w * 0.4), dent(y - h * 0.6));
+    ctx.lineTo(dent(x + w * 0.52), dent(y - h * 0.05));
+  } else if (config.model === 'muscle') {
+    // Wide squared-off shoulders, raised rear
+    ctx.moveTo(dent(x - w * 0.55), dent(y - h * 0.02));
+    ctx.lineTo(dent(x - w * 0.5), dent(y - h * 0.62));
+    ctx.lineTo(dent(x + w * 0.5), dent(y - h * 0.62));
+    ctx.lineTo(dent(x + w * 0.55), dent(y - h * 0.02));
+  } else if (config.model === 'rally') {
+    // Tall and chunky, raised stance
     ctx.moveTo(dent(x - w * 0.5), dent(y - h * 0.05));
-    ctx.lineTo(dent(x - w * 0.42), dent(y - h * 0.58));
-    ctx.lineTo(dent(x + w * 0.42), dent(y - h * 0.58));
+    ctx.lineTo(dent(x - w * 0.5), dent(y - h * 0.7));
+    ctx.lineTo(dent(x + w * 0.5), dent(y - h * 0.7));
+    ctx.lineTo(dent(x + w * 0.5), dent(y - h * 0.05));
+  } else if (config.model === 'prototype') {
+    // Le Mans hypercar — ultra wide, ultra low
+    ctx.moveTo(dent(x - w * 0.58), dent(y - h * 0.05));
+    ctx.lineTo(dent(x - w * 0.45), dent(y - h * 0.45));
+    ctx.lineTo(dent(x + w * 0.45), dent(y - h * 0.45));
+    ctx.lineTo(dent(x + w * 0.58), dent(y - h * 0.05));
+  } else if (config.model === 'stealth') {
+    // Faceted angular wedge — strong diagonal cuts
+    ctx.moveTo(dent(x - w * 0.5), dent(y - h * 0.05));
+    ctx.lineTo(dent(x - w * 0.46), dent(y - h * 0.4));
+    ctx.lineTo(dent(x - w * 0.32), dent(y - h * 0.55));
+    ctx.lineTo(dent(x + w * 0.32), dent(y - h * 0.55));
+    ctx.lineTo(dent(x + w * 0.46), dent(y - h * 0.4));
     ctx.lineTo(dent(x + w * 0.5), dent(y - h * 0.05));
   } else {
-    ctx.moveTo(dent(x - w * 0.46), dent(y - h * 0.05));
-    ctx.lineTo(dent(x - w * 0.44), dent(y - h * 0.6));
-    ctx.lineTo(dent(x + w * 0.44), dent(y - h * 0.6));
-    ctx.lineTo(dent(x + w * 0.46), dent(y - h * 0.05));
+    // interceptor and any fallback
+    ctx.moveTo(dent(x - w * 0.5), dent(y - h * 0.05));
+    ctx.lineTo(dent(x - w * 0.46), dent(y - h * 0.6));
+    ctx.lineTo(dent(x + w * 0.46), dent(y - h * 0.6));
+    ctx.lineTo(dent(x + w * 0.5), dent(y - h * 0.05));
   }
   ctx.closePath();
   ctx.fill();
@@ -211,7 +257,32 @@ const drawCabin = (ctx: CanvasRenderingContext2D, x: number, y: number, w: numbe
     ctx.lineTo(x - w * 0.22, y - h * 0.95);
     ctx.lineTo(x + w * 0.22, y - h * 0.95);
     ctx.lineTo(x + w * 0.38, y - h * 0.55);
+  } else if (config.model === 'muscle') {
+    // Squat fastback cabin
+    ctx.moveTo(x - w * 0.42, y - h * 0.62);
+    ctx.lineTo(x - w * 0.32, y - h * 0.95);
+    ctx.lineTo(x + w * 0.32, y - h * 0.95);
+    ctx.lineTo(x + w * 0.42, y - h * 0.62);
+  } else if (config.model === 'rally') {
+    // Tall greenhouse cabin
+    ctx.moveTo(x - w * 0.42, y - h * 0.7);
+    ctx.lineTo(x - w * 0.36, y - h * 1.2);
+    ctx.lineTo(x + w * 0.36, y - h * 1.2);
+    ctx.lineTo(x + w * 0.42, y - h * 0.7);
+  } else if (config.model === 'prototype') {
+    // Tiny canopy bubble
+    ctx.moveTo(x - w * 0.22, y - h * 0.45);
+    ctx.lineTo(x - w * 0.16, y - h * 0.95);
+    ctx.lineTo(x + w * 0.16, y - h * 0.95);
+    ctx.lineTo(x + w * 0.22, y - h * 0.45);
+  } else if (config.model === 'stealth') {
+    // Sharply faceted low canopy
+    ctx.moveTo(x - w * 0.34, y - h * 0.55);
+    ctx.lineTo(x - w * 0.22, y - h * 0.85);
+    ctx.lineTo(x + w * 0.22, y - h * 0.85);
+    ctx.lineTo(x + w * 0.34, y - h * 0.55);
   } else {
+    // drifter, interceptor, fallback
     ctx.moveTo(x - w * 0.4, y - h * 0.6);
     ctx.lineTo(x - w * 0.3, y - h * 1.05);
     ctx.lineTo(x + w * 0.3, y - h * 1.05);
@@ -374,9 +445,33 @@ const drawTailLights = (ctx: CanvasRenderingContext2D, x: number, y: number, w: 
 const drawExhaust = (ctx: CanvasRenderingContext2D, x: number, y: number, w: number, config: CarConfig) => {
   ctx.fillStyle = '#71717a';
   const exhaustSize = config.engine > 2 ? 14 : 10;
-  
-  if (config.bodyKit === 'extreme' || config.bodyKit === 'racing' || config.model === 'drifter') {
-    const offset = config.model === 'drifter' ? 0.35 : 0.25;
+
+  // Single fat center exhaust for prototype + stealth (jet-style)
+  if (config.model === 'prototype' || config.model === 'stealth') {
+    const size = config.model === 'prototype' ? exhaustSize + 4 : exhaustSize + 1;
+    ctx.beginPath();
+    ctx.arc(x, y - 8, size, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#000';
+    ctx.beginPath();
+    ctx.arc(x, y - 8, size - 3, 0, Math.PI * 2);
+    ctx.fill();
+    if (config.model === 'prototype') {
+      ctx.fillStyle = 'rgba(255,140,0,0.4)';
+      ctx.shadowBlur = 16;
+      ctx.shadowColor = '#ff6600';
+      ctx.beginPath();
+      ctx.arc(x, y - 8, size - 5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+    }
+    return;
+  }
+
+  const isQuad = config.bodyKit === 'extreme' || config.bodyKit === 'racing' ||
+                 config.model === 'drifter' || config.model === 'muscle';
+  if (isQuad) {
+    const offset = config.model === 'drifter' ? 0.35 : (config.model === 'muscle' ? 0.4 : 0.25);
     ctx.beginPath();
     ctx.arc(x - w * offset, y - 8, exhaustSize, 0, Math.PI * 2);
     ctx.arc(x - w * (offset - 0.1), y - 8, exhaustSize, 0, Math.PI * 2);
@@ -411,7 +506,17 @@ const drawLicensePlate = (ctx: CanvasRenderingContext2D, x: number, y: number, h
   ctx.fillStyle = '#000';
   ctx.font = 'bold 11px monospace';
   ctx.textAlign = 'center';
-  const text = model === 'interceptor' ? 'POLICE' : 'DRIFT';
+  const labels: Record<string, string> = {
+    interceptor: 'POLICE',
+    muscle: 'V8',
+    rally: 'RALLY',
+    prototype: 'PROTO',
+    stealth: 'GHOST',
+    tank: 'HEAVY',
+    speedster: 'FAST',
+    drifter: 'DRIFT',
+  };
+  const text = labels[model] ?? 'DRIFT';
   ctx.fillText(text, x, y - h * 0.28 + 12);
 };
 
@@ -441,6 +546,100 @@ const drawBoostFlames = (ctx: CanvasRenderingContext2D, x: number, y: number, w:
 
   drawFlame(x - w * 0.25, y - 5);
   drawFlame(x + w * 0.25, y - 5);
+  ctx.restore();
+};
+
+/**
+ * Per-chassis decorative details that overlay the body to give each car a
+ * recognizable silhouette (hood scoops, light pods, sharkfins, etc).
+ */
+const drawChassisAccents = (ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, config: CarConfig) => {
+  ctx.save();
+  if (config.model === 'muscle') {
+    // Center hood scoop on the rear deck
+    ctx.fillStyle = '#0a0a0a';
+    ctx.beginPath();
+    ctx.roundRect(x - w * 0.08, y - h * 0.55, w * 0.16, h * 0.18, 3);
+    ctx.fill();
+    ctx.fillStyle = '#222';
+    ctx.fillRect(x - w * 0.06, y - h * 0.5, w * 0.12, h * 0.04);
+  } else if (config.model === 'rally') {
+    // Roof-mounted light pod cluster
+    ctx.fillStyle = '#111';
+    ctx.fillRect(x - w * 0.32, y - h * 1.25, w * 0.64, 5);
+    for (let i = -2; i <= 2; i++) {
+      const lx = x + i * w * 0.12;
+      const grad = ctx.createRadialGradient(lx, y - h * 1.27, 0, lx, y - h * 1.27, 6);
+      grad.addColorStop(0, '#ffffff');
+      grad.addColorStop(1, '#ffd166');
+      ctx.fillStyle = grad;
+      ctx.shadowBlur = 12;
+      ctx.shadowColor = '#ffd166';
+      ctx.beginPath();
+      ctx.arc(lx, y - h * 1.27, 5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.shadowBlur = 0;
+    // Roof rack rails
+    ctx.strokeStyle = '#1f2937';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(x - w * 0.34, y - h * 1.18);
+    ctx.lineTo(x - w * 0.34, y - h * 0.95);
+    ctx.moveTo(x + w * 0.34, y - h * 1.18);
+    ctx.lineTo(x + w * 0.34, y - h * 0.95);
+    ctx.stroke();
+  } else if (config.model === 'prototype') {
+    // Sharkfin canopy stabilizer running down the spine
+    const finGrad = ctx.createLinearGradient(x, y - h * 1.0, x, y - h * 0.45);
+    finGrad.addColorStop(0, '#000');
+    finGrad.addColorStop(1, shadeColor(config.color, -40));
+    ctx.fillStyle = finGrad;
+    ctx.beginPath();
+    ctx.moveTo(x - w * 0.02, y - h * 0.45);
+    ctx.lineTo(x - w * 0.02, y - h * 1.0);
+    ctx.lineTo(x + w * 0.02, y - h * 1.05);
+    ctx.lineTo(x + w * 0.02, y - h * 0.45);
+    ctx.closePath();
+    ctx.fill();
+    // Side cooling intakes on the haunches
+    ctx.fillStyle = '#000';
+    ctx.fillRect(x - w * 0.55, y - h * 0.32, w * 0.12, h * 0.08);
+    ctx.fillRect(x + w * 0.43, y - h * 0.32, w * 0.12, h * 0.08);
+  } else if (config.model === 'stealth') {
+    // Cyan running-light strip across the rear
+    ctx.fillStyle = '#06b6d4';
+    ctx.shadowBlur = 14;
+    ctx.shadowColor = '#06b6d4';
+    ctx.fillRect(x - w * 0.4, y - h * 0.18, w * 0.8, 2.5);
+    ctx.shadowBlur = 0;
+    // Faceted panel seams catching the angular silhouette
+    ctx.strokeStyle = 'rgba(255,255,255,0.18)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(x - w * 0.46, y - h * 0.4);
+    ctx.lineTo(x - w * 0.32, y - h * 0.55);
+    ctx.moveTo(x + w * 0.46, y - h * 0.4);
+    ctx.lineTo(x + w * 0.32, y - h * 0.55);
+    ctx.stroke();
+  } else if (config.model === 'speedster') {
+    // Center hood vent slits
+    ctx.fillStyle = '#000';
+    for (let i = 0; i < 3; i++) {
+      ctx.fillRect(x - w * 0.06, y - h * 0.5 + i * 4, w * 0.12, 2);
+    }
+  } else if (config.model === 'drifter') {
+    // Side intake gills on the rear quarters
+    ctx.fillStyle = '#000';
+    for (let i = 0; i < 3; i++) {
+      ctx.fillRect(x - w * 0.5, y - h * 0.4 + i * 5, w * 0.06, 2.5);
+      ctx.fillRect(x + w * 0.44, y - h * 0.4 + i * 5, w * 0.06, 2.5);
+    }
+  } else if (config.model === 'tank') {
+    // Roof rail / brush bar
+    ctx.fillStyle = '#1f2937';
+    ctx.fillRect(x - w * 0.4, y - h * 1.18, w * 0.8, 4);
+  }
   ctx.restore();
 };
 
@@ -492,6 +691,7 @@ export const drawCar = (
   drawDecals(ctx, x, y, currentW, h, config);
   ctx.restore();
 
+  drawChassisAccents(ctx, x, y, currentW, h, config);
   drawWindows(ctx, x, y, currentW, h, damage);
   drawTailLights(ctx, x, y, currentW, h, config, isBraking, damage);
   drawExhaust(ctx, x, y, currentW, config);

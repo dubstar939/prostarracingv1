@@ -1,101 +1,147 @@
 /**
- * Car Sprite Loader & Manager
- * Loads the four per-car GIF assets and provides a deterministic CAR_ASSETS map.
+ * Car Asset Loader
+ *
+ * Generates rear-view procedural thumbnails for every chassis on demand by
+ * rendering the in-game `drawCar` routine into an offscreen canvas and caching
+ * the resulting data URL. This keeps Garage / Store / victory previews in
+ * lockstep with what the player actually drives during a race.
  */
 
-import car1 from "../assets/car1.gif";
-import car2 from "../assets/car2.gif";
-import car3 from "../assets/car3.gif";
-import car4 from "../assets/car4.gif";
+import type { CarConfig, CarModelType } from '../types';
+import { drawCar } from './carRenderer';
 
-export const CAR_ASSETS = {
-  car1,
-  car2,
-  car3,
-  car4,
-} as const;
+export type CarModel = CarModelType;
 
-export const cars = Object.values(CAR_ASSETS);
+/**
+ * Per-chassis flattering default color used to render the showroom thumbnail.
+ */
+const THUMBNAIL_COLORS: Record<CarModel, string> = {
+  speedster: '#ef4444',
+  drifter: '#22d3ee',
+  muscle: '#f59e0b',
+  tank: '#65a30d',
+  rally: '#3b82f6',
+  interceptor: '#0f172a',
+  prototype: '#a855f7',
+  stealth: '#1f2937',
+};
 
-export type CarModel = 'speedster' | 'drifter' | 'tank' | 'interceptor';
+const ALL_MODELS: CarModel[] = [
+  'speedster',
+  'drifter',
+  'muscle',
+  'tank',
+  'rally',
+  'interceptor',
+  'prototype',
+  'stealth',
+];
 
-export const MODEL_TO_ASSET: Record<CarModel, keyof typeof CAR_ASSETS> = {
-  speedster: 'car1',
-  drifter: 'car2',
-  tank: 'car3',
-  interceptor: 'car4',
+const thumbnailCache: Map<CarModel, string> = new Map();
+
+const buildThumbnailConfig = (model: CarModel): CarConfig => ({
+  model,
+  color: THUMBNAIL_COLORS[model] ?? '#ef4444',
+  engine: 2,
+  tires: 2,
+  turbo: 1,
+  spoiler: 'none',
+  bodyKit: 'stock',
+  decal: 'none',
+  rims: 'standard',
+});
+
+const renderThumbnail = (model: CarModel): string => {
+  const w = 360;
+  const h = 270;
+  const canvas = document.createElement('canvas');
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return '';
+
+  // Soft showroom backdrop
+  const bg = ctx.createLinearGradient(0, 0, 0, h);
+  bg.addColorStop(0, '#1f2937');
+  bg.addColorStop(1, '#0b1120');
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, w, h);
+
+  // Floor highlight
+  const floor = ctx.createRadialGradient(w / 2, h * 0.85, 10, w / 2, h * 0.85, w * 0.55);
+  floor.addColorStop(0, 'rgba(255,255,255,0.18)');
+  floor.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = floor;
+  ctx.fillRect(0, 0, w, h);
+
+  // Ground shadow under the car
+  ctx.fillStyle = 'rgba(0,0,0,0.45)';
+  ctx.beginPath();
+  ctx.ellipse(w / 2, h * 0.82, w * 0.32, 14, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  drawCar(ctx, w / 2, h * 0.82, 180, 110, buildThumbnailConfig(model));
+  return canvas.toDataURL('image/png');
 };
 
 /**
- * Get the GIF URL for a given car model.
+ * Get a stable data-URL thumbnail for the given chassis. Lazily generated and
+ * cached for the lifetime of the page. Falls back to an empty string if called
+ * outside of a browser environment.
  */
 export const getCarAssetForModel = (model: CarModel): string => {
-  return CAR_ASSETS[MODEL_TO_ASSET[model]];
+  if (typeof document === 'undefined') return '';
+  const cached = thumbnailCache.get(model);
+  if (cached) return cached;
+  const url = renderThumbnail(model);
+  thumbnailCache.set(model, url);
+  return url;
 };
 
-const imageCache: Map<keyof typeof CAR_ASSETS, HTMLImageElement> = new Map();
+export const CAR_ASSETS: Record<CarModel, string> = new Proxy(
+  {} as Record<CarModel, string>,
+  {
+    get: (_target, prop: string) => getCarAssetForModel(prop as CarModel),
+    ownKeys: () => ALL_MODELS as string[],
+    getOwnPropertyDescriptor: () => ({ enumerable: true, configurable: true }),
+  }
+);
+
+export const MODEL_TO_ASSET: Record<CarModel, CarModel> = ALL_MODELS.reduce(
+  (acc, m) => {
+    acc[m] = m;
+    return acc;
+  },
+  {} as Record<CarModel, CarModel>
+);
 
 /**
- * Load an image from URL and return a promise that resolves when loaded.
+ * Legacy image-loading API kept as no-ops so existing callers don't break.
+ * The procedural pipeline doesn't need preloading.
  */
-export const loadImage = (src: string): Promise<HTMLImageElement> => {
-  return new Promise((resolve, reject) => {
+export const loadImage = (src: string): Promise<HTMLImageElement> =>
+  new Promise((resolve, reject) => {
     const img = new Image();
     img.onload = () => resolve(img);
     img.onerror = () => reject(new Error(`Failed to load image: ${src}`));
     img.src = src;
   });
-};
 
-/**
- * Preload all four car GIFs into the in-memory cache.
- */
 export const initializeCarSprites = async (): Promise<void> => {
-  try {
-    await Promise.all(
-      (Object.keys(CAR_ASSETS) as Array<keyof typeof CAR_ASSETS>).map(async (key) => {
-        if (imageCache.has(key)) return;
-        const img = await loadImage(CAR_ASSETS[key]);
-        imageCache.set(key, img);
-      })
-    );
-    console.log('Car sprites loaded successfully');
-  } catch (error) {
-    console.warn('Some car sprites failed to load, will fallback to procedural rendering:', error);
-  }
+  // Procedural thumbnails are generated lazily on first access.
 };
 
-/**
- * Check if sprites are initialized and ready.
- */
-export const areSpritesReady = (): boolean => {
-  return imageCache.size === Object.keys(CAR_ASSETS).length;
-};
+export const areSpritesReady = (): boolean => true;
 
-/**
- * Draw the car GIF for the given model at the specified position.
- * Returns false if the asset isn't loaded yet so the caller can fall back.
- */
 export const drawCarSprite = (
-  ctx: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-  width: number,
-  height: number,
-  model: CarModel
-): boolean => {
-  const assetKey = MODEL_TO_ASSET[model];
-  const image = imageCache.get(assetKey);
-  if (!image || !image.complete || image.naturalWidth === 0) {
-    return false;
-  }
-  ctx.drawImage(image, x - width / 2, y - height, width, height);
-  return true;
-};
+  _ctx: CanvasRenderingContext2D,
+  _x: number,
+  _y: number,
+  _width: number,
+  _height: number,
+  _model: CarModel
+): boolean => false;
 
-/**
- * Clear sprite cache (useful for hot reloading).
- */
 export const clearSpriteCache = (): void => {
-  imageCache.clear();
+  thumbnailCache.clear();
 };
