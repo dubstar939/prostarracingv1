@@ -45,33 +45,32 @@ export class GameAudio {
       
       this.engineOsc.start();
 
-      // Drift Sound
-      this.driftAudio = new Audio('https://cdn.pixabay.com/audio/2022/03/10/audio_c8c8a0a0a0.mp3');
+      // Drift Sound - using data URI for silent placeholder to avoid 403 errors
+      this.driftAudio = new Audio();
       this.driftAudio.loop = true;
       this.driftAudio.volume = 0;
 
       // Tire Screech (More intense)
-      this.screechAudio = new Audio('https://cdn.pixabay.com/audio/2022/03/10/audio_c8c8a0a0a0.mp3'); // Reuse for now or find better
+      this.screechAudio = new Audio();
       this.screechAudio.playbackRate = 1.5;
       this.screechAudio.volume = 0;
 
       // Turbo Sound
-      this.turboAudio = new Audio('https://cdn.pixabay.com/audio/2021/08/04/audio_12b5443d3a.mp3');
+      this.turboAudio = new Audio();
       this.turboAudio.volume = 0.4;
 
       // Collision Sound
-      this.collisionAudio = new Audio('https://cdn.pixabay.com/audio/2022/03/10/audio_730626391d.mp3');
+      this.collisionAudio = new Audio();
       this.collisionAudio.volume = 0.5;
 
       // Wind/Ambient Sound
-      this.windAudio = new Audio('https://cdn.pixabay.com/audio/2022/01/18/audio_d0a1b2c3d4.mp3'); // Wind loop
+      this.windAudio = new Audio();
       this.windAudio.loop = true;
       this.windAudio.volume = 0;
 
-      // Background Music
-      this.music = new Audio('https://www.soundhelix.com/examples/mp3/SoundHelix-Song-8.mp3');
-      this.music.loop = true;
-      this.music.volume = 0.15;
+      // Background Music - disabled by default to avoid 403 errors
+      // Music can be enabled by providing a valid URL
+      this.music = null;
 
       this.initialized = true;
     } catch (e) {
