@@ -1,0 +1,75 @@
+{
+  "track_name": "Akina Reverse: Midnight Descent",
+  "style": "MOUNTAIN PASS ENGINEER",
+  "difficulty": "Intermediate",
+  "setting": "Night Time",
+  "course_type": "Downhill Touge",
+  "layout": {
+    "nodes": ["start_line", "hairpin_1", "straight_tech_1", "chicane_forest", "straight_tech_2", "hairpin_2", "tunnel_mountain", "exit_tunnel", "sweeper_final", "hairpin_3", "finish_line"],
+    "curves": [
+      {"id": "hairpin_1", "angle": 180, "radius": 45, "banking": "flat", "surface": "asphalt_grip_low"},
+      {"id": "chicane_forest", "angle": 60, "radius": 35, "banking": "flat", "surface": "asphalt_grip_med"},
+      {"id": "hairpin_2", "angle": 175, "radius": 50, "banking": "slight_outside", "surface": "asphalt_grip_low"},
+      {"id": "sweeper_final", "angle": 120, "radius": 180, "banking": "slight_inside", "surface": "asphalt_grip_high"},
+      {"id": "hairpin_3", "angle": 180, "radius": 42, "banking": "flat", "surface": "asphalt_grip_low"}
+    ],
+    "straights": [
+      {"id": "straight_tech_1", "length": 280, "width": 6, "lanes": 2},
+      {"id": "straight_tech_2", "length": 320, "width": 6, "lanes": 2},
+      {"id": "straight_pre_tunnel", "length": 180, "width": 6, "lanes": 2},
+      {"id": "straight_final", "length": 220, "width": 6, "lanes": 2}
+    ],
+    "boost_zones": [
+      {"at": "exit_hairpin_1", "length": 80, "gain": "medium"},
+      {"at": "exit_chicane", "length": 60, "gain": "low"},
+      {"at": "exit_tunnel", "length": 100, "gain": "high"},
+      {"at": "exit_sweeper_final", "length": 80, "gain": "medium"}
+    ],
+    "hazards": [
+      {"type": "guardrail_proximity", "zones": ["hairpin_1", "hairpin_2", "hairpin_3"], "penalty_on_contact": -5},
+      {"type": "tunnel_shadow", "zones": ["tunnel_mountain"], "visibility_reduction": "60%"},
+      {"type": "off_line_gravel", "zones": ["hairpin_1_exit", "hairpin_2_exit", "hairpin_3_exit"], "speed_penalty": "30%"},
+      {"type": "narrow_passage", "zones": ["chicane_forest"], "width_reduction": "1.5m"}
+    ],
+    "elevation": [
+      {"segment": "start_to_hairpin_1", "change": "-15m", "gradient": "-8%"},
+      {"segment": "hairpin_1_to_chicane", "change": "-22m", "gradient": "-10%"},
+      {"segment": "chicane_to_hairpin_2", "change": "-18m", "gradient": "-9%"},
+      {"segment": "hairpin_2_to_tunnel", "change": "-12m", "gradient": "-7%"},
+      {"segment": "tunnel_to_finish", "change": "-25m", "gradient": "-11%"}
+    ]
+  },
+  "flow_notes": {
+    "drift_initiation": ["hairpin_1_entry", "chicane_forest_entry", "hairpin_2_entry", "hairpin_3_entry"],
+    "braking_points": ["hairpin_1_brake_marker", "chicane_brake_marker", "hairpin_2_brake_marker", "hairpin_3_brake_marker"],
+    "weight_transfer_zones": ["exit_hairpin_1", "exit_chicane", "exit_hairpin_2", "exit_sweeper_final"],
+    "optimal_lines": {
+      "hairpin_1": "late_apex_for_exit_speed",
+      "chicane": "balanced_rhythm_no_wall_touch",
+      "hairpin_2": "early_turn_in_for_tunnel_setup",
+      "sweeper_final": "full_throttle_maintain_momentum",
+      "hairpin_3": "tight_line_to_finish"
+    },
+    "downhill_physics": {
+      "brake_bias": "front_70_rear_30",
+      "weight_transfer": "heavy_front_load_on_braking",
+      "drift_entry_speed": "controlled_slide_vs_grip"
+    }
+  },
+  "mobile_optimization": {
+    "lod_distances": {"near": 30, "mid": 120, "far": 300},
+    "texture_res": "512x512",
+    "poly_count_target": 12000,
+    "lighting_baked": true,
+    "shadow_casters": "limited_to_player_and_key_objects",
+    "foliage_simplified": true
+  },
+  "visual_identity": {
+    "lighting": "moonlight_with_street_lamps_sparse",
+    "signage": "minimal_touge_markers",
+    "barriers": "metal_guardrail_orange_reflectors",
+    "environment": "dense_forest_canopy",
+    "atmosphere": "clear_night_cool_air",
+    "color_palette": ["#0d1b2a", "#1b263b", "#415a77", "#778da9", "#e0e1dd"]
+  }
+}
