@@ -1,0 +1,78 @@
+{
+  "track_name": "Shibuya Backstreets: Beginner Loop",
+  "style": "STREET TECHNICAL ARCHITECT",
+  "difficulty": "Beginner",
+  "setting": "Night Time",
+  "course_type": "Urban Street Circuit",
+  "layout": {
+    "nodes": ["start_grid", "tight_corner_1", "short_straight_1", "chicane_shopping", "short_straight_2", "hairpin_parking", "short_straight_3", "s_bend_alley", "short_straight_4", "final_corner", "finish_line"],
+    "curves": [
+      {"id": "tight_corner_1", "angle": 90, "radius": 25, "banking": "flat", "surface": "asphalt_grip_med"},
+      {"id": "chicane_shopping", "angle": 45, "radius": 20, "banking": "flat", "surface": "asphalt_grip_med"},
+      {"id": "hairpin_parking", "angle": 180, "radius": 30, "banking": "flat", "surface": "asphalt_grip_low"},
+      {"id": "s_bend_alley", "angle": 60, "radius": 22, "banking": "flat", "surface": "asphalt_grip_med"},
+      {"id": "final_corner", "angle": 100, "radius": 28, "banking": "flat", "surface": "asphalt_grip_high"}
+    ],
+    "straights": [
+      {"id": "short_straight_1", "length": 120, "width": 7, "lanes": 2},
+      {"id": "short_straight_2", "length": 90, "width": 7, "lanes": 2},
+      {"id": "short_straight_3", "length": 110, "width": 6, "lanes": 2},
+      {"id": "short_straight_4", "length": 100, "width": 7, "lanes": 2},
+      {"id": "straight_finish", "length": 140, "width": 8, "lanes": 2}
+    ],
+    "boost_zones": [
+      {"at": "exit_tight_corner_1", "length": 50, "gain": "low"},
+      {"at": "exit_chicane", "length": 40, "gain": "low"},
+      {"at": "exit_hairpin", "length": 60, "gain": "medium"},
+      {"at": "exit_s_bend", "length": 50, "gain": "low"},
+      {"at": "straight_finish_mid", "length": 70, "gain": "medium"}
+    ],
+    "hazards": [
+      {"type": "curb_contact", "zones": ["tight_corner_1", "chicane_shopping", "hairpin_parking", "s_bend_alley"], "penalty_on_contact": -2},
+      {"type": "narrow_walls", "zones": ["short_straight_3", "s_bend_alley"], "width_reduction": "1m", "penalty_on_contact": -3},
+      {"type": "parked_cars_visual", "zones": ["short_straight_2", "short_straight_4"], "no_collision": true},
+      {"type": "manhole_covers", "zones": ["hairpin_parking_entry"], "grip_reduction": "15%"}
+    ],
+    "elevation": [
+      {"segment": "start_to_tight_1", "change": "0m", "gradient": "flat"},
+      {"segment": "chicane_to_hairpin", "change": "-1m", "gradient": "-1%"},
+      {"segment": "hairpin_to_s_bend", "change": "+1.5m", "gradient": "+2%"},
+      {"segment": "s_bend_to_finish", "change": "0m", "gradient": "flat"}
+    ]
+  },
+  "flow_notes": {
+    "drift_initiation": ["tight_corner_1_entry", "chicane_shopping_entry", "hairpin_parking_entry", "s_bend_alley_entry"],
+    "braking_points": ["tight_corner_1_marker", "chicane_shopping_marker", "hairpin_parking_marker", "s_bend_alley_marker", "final_corner_marker"],
+    "weight_transfer_zones": ["exit_tight_corner_1", "exit_chicane", "exit_hairpin", "exit_s_bend"],
+    "optimal_lines": {
+      "tight_corner_1": "standard_racing_line",
+      "chicane_shopping": "rhythm_over_speed",
+      "hairpin_parking": "wide_entry_tight_exit",
+      "s_bend_alley": "smooth_transition_no_wall",
+      "final_corner": "early_acceleration_zone"
+    },
+    "beginner_focus": {
+      "corner_spacing": "generous_for_learning",
+      "wall_penalties": "forgiving",
+      "boost_placement": "after_each_corner_for_recovery",
+      "visual_telegraphing": "high_contrast_markers"
+    }
+  },
+  "mobile_optimization": {
+    "lod_distances": {"near": 25, "mid": 100, "far": 250},
+    "texture_res": "512x512",
+    "poly_count_target": 10000,
+    "lighting_baked": true,
+    "shadow_casters": "limited_to_player_and_key_objects",
+    "building_simplified": true,
+    "prop_count_minimized": true
+  },
+  "visual_identity": {
+    "lighting": "street_lamps_neon_signs_soft",
+    "signage": "jdm_shop_fronts_vending_machines",
+    "barriers": "concrete_curbs_paint_markings",
+    "environment": "urban_density_tokyo_backstreets",
+    "atmosphere": "clear_night_city_glow",
+    "color_palette": ["#1a1a2e", "#16213e", "#e94560", "#f5a623", "#ffffff"]
+  }
+}

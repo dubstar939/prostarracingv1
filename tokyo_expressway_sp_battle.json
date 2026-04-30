@@ -1,0 +1,87 @@
+{
+  "track_name": "Tokyo Expressway: Midnight Run",
+  "style": "WANGAN EXPRESSWAY DIRECTOR",
+  "difficulty": "Expert",
+  "setting": "Night Time",
+  "sp_battle_config": {
+    "max_sp": 100,
+    "drain_rates": {
+      "base": 0.2,
+      "tunnel_multiplier": 1.5,
+      "merge_multiplier": 1.4,
+      "breakaway_threshold_m": 60
+    },
+    "mistake_penalties": {
+      "wall_scrape": -3,
+      "wall_hit": -8,
+      "heavy_collision": -15,
+      "off_line": -4,
+      "brake_check": -6,
+      "missed_apex": -3
+    },
+    "skill_rewards": {
+      "perfect_drift": 1,
+      "clean_overtake": 2,
+      "sustained_300kph": 1
+    }
+  },
+  "layout": {
+    "nodes": ["start_gate", "straight_shuto", "sweeper_daikoku", "tunnel_entrance_a", "tunnel_section_a", "tunnel_exit_a", "merge_zone_1", "straight_bay", "sweeper_harbor", "tunnel_entrance_b", "tunnel_section_b", "tunnel_exit_b", "split_route_upper", "split_route_lower", "merge_zone_2", "final_straight"],
+    "curves": [
+      {"id": "sweeper_daikoku", "angle": 140, "radius": 420, "banking": "flat", "surface": "asphalt"},
+      {"id": "sweeper_harbor", "angle": 160, "radius": 480, "banking": "slight_left", "surface": "asphalt"},
+      {"id": "split_curve_upper", "angle": 15, "radius": 800, "banking": "slight_right", "surface": "asphalt"},
+      {"id": "split_curve_lower", "angle": 25, "radius": 650, "banking": "flat", "surface": "asphalt"}
+    ],
+    "straights": [
+      {"id": "straight_shuto", "length": 2800, "width": 14, "lanes": 3},
+      {"id": "straight_bay", "length": 1900, "width": 12, "lanes": 3},
+      {"id": "final_straight", "length": 2200, "width": 14, "lanes": 3}
+    ],
+    "boost_zones": [
+      {"at": "exit_sweeper_daikoku", "length": 150, "gain": "high"},
+      {"at": "exit_tunnel_a", "length": 200, "gain": "medium"},
+      {"at": "exit_merge_1", "length": 100, "gain": "medium"},
+      {"at": "exit_sweeper_harbor", "length": 150, "gain": "high"},
+      {"at": "exit_tunnel_b", "length": 200, "gain": "medium"},
+      {"at": "final_straight_mid", "length": 300, "gain": "high"}
+    ],
+    "hazards": [
+      {"type": "traffic", "density": "low", "zones": ["straight_shuto", "straight_bay"]},
+      {"type": "tunnel_shadow", "zones": ["tunnel_section_a", "tunnel_section_b"], "visibility_reduction": "40%"},
+      {"type": "merge_conflict", "zones": ["merge_zone_1", "merge_zone_2"], "ai_aggression": "high"},
+      {"type": "split_route_choice", "upper": "longer_clean", "lower": "shorter_traffic"}
+    ],
+    "elevation": [
+      {"segment": "merge_zone_1", "change": "+4m", "gradient": "2%"},
+      {"segment": "tunnel_section_b", "change": "-3m", "gradient": "-1.5%"},
+      {"segment": "split_route_upper", "change": "+6m", "gradient": "3%"},
+      {"segment": "split_route_lower", "change": "0m", "gradient": "flat"}
+    ]
+  },
+  "flow_notes": {
+    "drift_initiation": ["sweeper_daikoku_entry", "sweeper_harbor_entry", "split_curve_lower_entry"],
+    "braking_points": ["tunnel_entrance_a", "tunnel_entrance_b", "merge_zone_2"],
+    "weight_transfer_zones": ["exit_sweeper_daikoku", "exit_merge_1", "split_route_choice"],
+    "optimal_lines": {
+      "tunnel_a": "center_lane_for_exit_speed",
+      "merge_1": "late_merge_for_pressure",
+      "split_route": "upper_for_clean_air_lower_for_risk"
+    }
+  },
+  "mobile_optimization": {
+    "lod_distances": {"near": 50, "mid": 200, "far": 500},
+    "texture_res": "512x512",
+    "poly_count_target": 15000,
+    "lighting_baked": true,
+    "shadow_casters": "limited_to_player_and_opponents"
+  },
+  "visual_identity": {
+    "lighting": "realistic_highway_lamps",
+    "signage": "jdm_standard_reflective",
+    "barriers": "concrete_jet_barrier",
+    "skybox": "tokyo_skyline_silhouette",
+    "atmosphere": "late_night_clear",
+    "color_palette": ["#1a1a2e", "#16213e", "#0f3460", "#e94560", "#ffffff"]
+  }
+}
