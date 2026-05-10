@@ -3,7 +3,7 @@
  * 
  * This service provides:
  * - Procedural sound generation for engine, drift, and effects
- * - Background music support with theme-based tracks
+ * - Procedural Techno Music Sequencer - Dynamic, royalty-free background music
  * - Volume control and mute functionality
  * 
  * ROYALTY-FREE AUDIO SOURCES:
@@ -48,31 +48,26 @@ export class GameAudio {
   private collisionAudio: HTMLAudioElement | null = null;
   private windAudio: HTMLAudioElement | null = null;
   private screechAudio: HTMLAudioElement | null = null;
-  private music: HTMLAudioElement | null = null;
+  
+  // Music sequencer
+  private isMusicPlaying: boolean = false;
+  private musicGain: GainNode | null = null;
+  private nextNoteTime: number = 0;
+  private currentStep: number = 0;
+  private timerID: number | null = null;
+  private tempo: number = 138; // Techno BPM
+  private lookahead: number = 25.0; // ms
+  private scheduleAheadTime: number = 0.1; // s
+  
+  // Sequencer Patterns (16 steps)
+  private kickPattern =  [1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0];
+  private snarePattern = [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0];
+  private hihatPattern = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1];
+  private bassPattern =  [1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0];
   
   private isMuted: boolean = false;
   private initialized: boolean = false;
   private currentTheme: string = 'mountain';
-
-  // Royalty-free music tracks by theme (add your downloaded files here)
-  private MUSIC_TRACKS: Record<string, string> = {
-    // Default racing theme music - procedurally generated (CC0)
-    'mountain': '/audio/music_racing.wav',
-    'city': '/audio/music_racing.wav',
-    'desert': '/audio/music_racing.wav',
-    'neon_city': '/audio/music_racing.wav',
-    'touge': '/audio/music_racing.wav',
-  };
-
-  // Sound effect files (add your downloaded files here)
-  private SFX_FILES: Record<string, string> = {
-    // Example: Add downloaded SFX from Freesound
-    // 'drift': '/audio/drift_sound.wav',
-    // 'screech': '/audio/tire_screech.wav',
-    // 'turbo': '/audio/turbo_boost.wav',
-    // 'collision': '/audio/collision.wav',
-    // Default: procedural audio only
-  };
 
   constructor() {}
 
@@ -85,6 +80,15 @@ export class GameAudio {
     
     try {
       this.ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      
+      // Create master gain for music
+      const masterGain = this.ctx.createGain();
+      masterGain.connect(this.ctx.destination);
+      masterGain.gain.value = 0.5;
+      
+      this.musicGain = this.ctx.createGain();
+      this.musicGain.connect(masterGain);
+      this.musicGain.gain.value = 0.7;
       
       // Procedural Engine Sound
       this.engineOsc = this.ctx.createOscillator();
@@ -103,45 +107,33 @@ export class GameAudio {
       
       this.engineOsc.start();
 
-      // Load SFX from files if available, otherwise use procedural audio
-      // Drift Sound
-      this.driftAudio = new Audio(this.SFX_FILES['drift'] || '');
+      // Drift Sound - procedural noise
+      this.driftAudio = new Audio('');
       this.driftAudio.loop = true;
       this.driftAudio.volume = 0;
       this.driftAudio.preload = 'auto';
 
-      // Tire Screech
-      this.screechAudio = new Audio(this.SFX_FILES['screech'] || '');
+      // Tire Screech - procedural
+      this.screechAudio = new Audio('');
       this.screechAudio.playbackRate = 1.5;
       this.screechAudio.volume = 0;
       this.screechAudio.preload = 'auto';
 
-      // Turbo Sound
-      this.turboAudio = new Audio(this.SFX_FILES['turbo'] || '');
+      // Turbo Sound - procedural
+      this.turboAudio = new Audio('');
       this.turboAudio.volume = 0.4;
       this.turboAudio.preload = 'auto';
 
-      // Collision Sound
-      this.collisionAudio = new Audio(this.SFX_FILES['collision'] || '');
+      // Collision Sound - procedural
+      this.collisionAudio = new Audio('');
       this.collisionAudio.volume = 0.5;
       this.collisionAudio.preload = 'auto';
 
-      // Wind/Ambient Sound
-      this.windAudio = new Audio(this.SFX_FILES['wind'] || '');
+      // Wind/Ambient Sound - procedural
+      this.windAudio = new Audio('');
       this.windAudio.loop = true;
       this.windAudio.volume = 0;
       this.windAudio.preload = 'auto';
-
-      // Background Music - load based on current theme
-      const musicPath = this.MUSIC_TRACKS[this.currentTheme];
-      if (musicPath) {
-        this.music = new Audio(musicPath);
-        this.music.loop = true;
-        this.music.volume = 0.5;
-        this.music.preload = 'auto';
-      } else {
-        this.music = null;
-      }
 
       this.initialized = true;
     } catch (e) {
@@ -215,14 +207,23 @@ export class GameAudio {
   }
 
   public startMusic() {
-    if (this.music && !this.isMuted) {
-      this.music.play().catch(e => console.log("Music play blocked", e));
-    }
+    if (!this.initialized || !this.ctx) return;
+    
+    this.isMusicPlaying = true;
+    this.nextNoteTime = this.ctx.currentTime + 0.1;
+    this.currentStep = 0;
+    this.scheduler();
   }
 
   public stopMusic() {
-    if (this.music) {
-      this.music.pause();
+    this.isMusicPlaying = false;
+    if (this.timerID) {
+      window.clearTimeout(this.timerID);
+      this.timerID = null;
+    }
+    // Fade out music
+    if (this.musicGain && this.ctx) {
+      this.musicGain.gain.setTargetAtTime(0, this.ctx.currentTime, 0.5);
     }
     if (this.engineGain) {
       this.engineGain.gain.setTargetAtTime(0, this.ctx?.currentTime || 0, 0.1);
@@ -230,6 +231,153 @@ export class GameAudio {
     if (this.windAudio) {
       this.windAudio.pause();
     }
+  }
+
+  // --- Music Sequencer Engine ---
+
+  private scheduler() {
+    if (!this.isMusicPlaying || !this.ctx) return;
+
+    while (this.nextNoteTime < this.ctx.currentTime + this.scheduleAheadTime) {
+      this.scheduleNote(this.currentStep, this.nextNoteTime);
+      this.nextStep();
+    }
+    this.timerID = window.setTimeout(() => this.scheduler(), this.lookahead);
+  }
+
+  private nextStep() {
+    const secondsPerBeat = 60.0 / this.tempo;
+    const secondsPer16th = secondsPerBeat / 4;
+    this.nextNoteTime += secondsPer16th;
+    this.currentStep = (this.currentStep + 1) % 16;
+  }
+
+  private scheduleNote(step: number, time: number) {
+    if (!this.ctx || !this.musicGain) return;
+
+    if (this.kickPattern[step]) this.playKick(time);
+    if (this.snarePattern[step]) this.playSnare(time);
+    if (this.hihatPattern[step]) this.playHiHat(time, step % 2 === 0);
+    if (this.bassPattern[step]) this.playBass(time, step);
+  }
+
+  private playKick(time: number) {
+    const osc = this.ctx!.createOscillator();
+    const gain = this.ctx!.createGain();
+    
+    osc.connect(gain);
+    gain.connect(this.musicGain!);
+
+    osc.frequency.setValueAtTime(150, time);
+    osc.frequency.exponentialRampToValueAtTime(0.01, time + 0.5);
+    
+    gain.gain.setValueAtTime(1, time);
+    gain.gain.exponentialRampToValueAtTime(0.01, time + 0.5);
+
+    osc.start(time);
+    osc.stop(time + 0.5);
+  }
+
+  private playSnare(time: number) {
+    const bufferSize = this.ctx!.sampleRate * 0.5;
+    const buffer = this.ctx!.createBuffer(1, bufferSize, this.ctx!.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      data[i] = Math.random() * 2 - 1;
+    }
+
+    const noise = this.ctx!.createBufferSource();
+    noise.buffer = buffer;
+    
+    const noiseFilter = this.ctx!.createBiquadFilter();
+    noiseFilter.type = 'highpass';
+    noiseFilter.frequency.value = 1000;
+    
+    const noiseEnvelope = this.ctx!.createGain();
+    noise.connect(noiseFilter);
+    noiseFilter.connect(noiseEnvelope);
+    noiseEnvelope.connect(this.musicGain!);
+
+    noiseEnvelope.gain.setValueAtTime(0.8, time);
+    noiseEnvelope.gain.exponentialRampToValueAtTime(0.01, time + 0.2);
+    
+    noise.start(time);
+    noise.stop(time + 0.2);
+
+    const osc = this.ctx!.createOscillator();
+    osc.type = 'triangle';
+    const oscEnv = this.ctx!.createGain();
+    osc.connect(oscEnv);
+    oscEnv.connect(this.musicGain!);
+    
+    osc.frequency.setValueAtTime(250, time);
+    oscEnv.gain.setValueAtTime(0.4, time);
+    oscEnv.gain.exponentialRampToValueAtTime(0.01, time + 0.1);
+    
+    osc.start(time);
+    osc.stop(time + 0.1);
+  }
+
+  private playHiHat(time: number, isOpen: boolean) {
+    const bufferSize = this.ctx!.sampleRate * 0.5;
+    const buffer = this.ctx!.createBuffer(1, bufferSize, this.ctx!.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      if (i % 2 === 0) data[i] = Math.random() * 2 - 1;
+      else data[i] = 0; 
+    }
+
+    const noise = this.ctx!.createBufferSource();
+    noise.buffer = buffer;
+
+    const filter = this.ctx!.createBiquadFilter();
+    filter.type = 'highpass';
+    filter.frequency.value = 7000;
+
+    const gain = this.ctx!.createGain();
+    noise.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.musicGain!);
+
+    const duration = isOpen ? 0.3 : 0.05;
+    const vol = isOpen ? 0.3 : 0.2;
+
+    gain.gain.setValueAtTime(vol, time);
+    gain.gain.exponentialRampToValueAtTime(0.01, time + duration);
+
+    noise.start(time);
+    noise.stop(time + duration);
+  }
+
+  private playBass(time: number, step: number) {
+    const osc = this.ctx!.createOscillator();
+    osc.type = 'sawtooth';
+    
+    const filter = this.ctx!.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.Q.value = 5;
+    
+    const gain = this.ctx!.createGain();
+    
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.musicGain!);
+
+    let freq = 55;
+    if (step % 4 === 2) freq = 65.41;
+    if (step % 8 === 4) freq = 49.00;
+    
+    osc.frequency.setValueAtTime(freq, time);
+    
+    filter.frequency.setValueAtTime(200, time);
+    filter.frequency.exponentialRampToValueAtTime(800, time + 0.1);
+    filter.frequency.exponentialRampToValueAtTime(200, time + 0.3);
+
+    gain.gain.setValueAtTime(0.6, time);
+    gain.gain.linearRampToValueAtTime(0, time + 0.4);
+
+    osc.start(time);
+    osc.stop(time + 0.4);
   }
 
   public toggleMute() {
