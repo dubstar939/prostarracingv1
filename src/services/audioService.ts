@@ -1,3 +1,41 @@
+/**
+ * Game Audio Service - Manages all game sound effects and music
+ * 
+ * This service provides:
+ * - Procedural sound generation for engine, drift, and effects
+ * - Background music support with theme-based tracks
+ * - Volume control and mute functionality
+ * 
+ * ROYALTY-FREE AUDIO SOURCES:
+ * ---------------------------
+ * To add royalty-free music and sound effects:
+ * 
+ * 1. OpenGameArt (https://opengameart.org/)
+ *    - Search for "racing", "car", "engine", "drift"
+ *    - Filter by license: CC0, CC-BY, CC-BY-SA
+ *    - Download OGG or MP3 files
+ *    - Place in /public/audio/ directory
+ *    - Update the MUSIC_TRACKS and SFX_FILES objects below
+ * 
+ * 2. Freesound (https://freesound.org/)
+ *    - Search for specific SFX: "tire screech", "turbo", "collision"
+ *    - Filter by license: CC0 or Creative Commons
+ *    - Download WAV or OGG files
+ *    - Place in /public/audio/ directory
+ *    - Update the SFX_FILES object below
+ * 
+ * 3. Itch.io Game Assets (https://itch.io/game-assets/free/tag-sound-effects)
+ *    - Free game sound packs
+ *    - Check individual licenses
+ * 
+ * EXAMPLE ATTRIBUTION:
+ * --------------------
+ * If using CC-BY licensed assets, add attribution in README.md:
+ * 
+ * ## Audio Assets
+ * - "Racing Theme" by [Artist Name] from OpenGameArt.org (CC-BY 3.0)
+ * - "Tire Screech" by [Artist Name] from Freesound.org (CC0)
+ */
 
 export class GameAudio {
   private ctx: AudioContext | null = null;
@@ -15,6 +53,25 @@ export class GameAudio {
   private isMuted: boolean = false;
   private initialized: boolean = false;
   private currentTheme: string = 'mountain';
+
+  // Royalty-free music tracks by theme (add your downloaded files here)
+  private MUSIC_TRACKS: Record<string, string> = {
+    // Example: Add downloaded tracks from OpenGameArt
+    // 'neon_city': '/audio/music_neon_city.ogg',
+    // 'touge': '/audio/music_touge.ogg',
+    // 'desert': '/audio/music_desert.ogg',
+    // Default: procedural audio only (no background music)
+  };
+
+  // Sound effect files (add your downloaded files here)
+  private SFX_FILES: Record<string, string> = {
+    // Example: Add downloaded SFX from Freesound
+    // 'drift': '/audio/drift_sound.wav',
+    // 'screech': '/audio/tire_screech.wav',
+    // 'turbo': '/audio/turbo_boost.wav',
+    // 'collision': '/audio/collision.wav',
+    // Default: procedural audio only
+  };
 
   constructor() {}
 
@@ -45,32 +102,45 @@ export class GameAudio {
       
       this.engineOsc.start();
 
-      // Drift Sound - using data URI for silent placeholder to avoid 403 errors
-      this.driftAudio = new Audio();
+      // Load SFX from files if available, otherwise use procedural audio
+      // Drift Sound
+      this.driftAudio = new Audio(this.SFX_FILES['drift'] || '');
       this.driftAudio.loop = true;
       this.driftAudio.volume = 0;
+      this.driftAudio.preload = 'auto';
 
-      // Tire Screech (More intense)
-      this.screechAudio = new Audio();
+      // Tire Screech
+      this.screechAudio = new Audio(this.SFX_FILES['screech'] || '');
       this.screechAudio.playbackRate = 1.5;
       this.screechAudio.volume = 0;
+      this.screechAudio.preload = 'auto';
 
       // Turbo Sound
-      this.turboAudio = new Audio();
+      this.turboAudio = new Audio(this.SFX_FILES['turbo'] || '');
       this.turboAudio.volume = 0.4;
+      this.turboAudio.preload = 'auto';
 
       // Collision Sound
-      this.collisionAudio = new Audio();
+      this.collisionAudio = new Audio(this.SFX_FILES['collision'] || '');
       this.collisionAudio.volume = 0.5;
+      this.collisionAudio.preload = 'auto';
 
       // Wind/Ambient Sound
-      this.windAudio = new Audio();
+      this.windAudio = new Audio(this.SFX_FILES['wind'] || '');
       this.windAudio.loop = true;
       this.windAudio.volume = 0;
+      this.windAudio.preload = 'auto';
 
-      // Background Music - disabled by default to avoid 403 errors
-      // Music can be enabled by providing a valid URL
-      this.music = null;
+      // Background Music - load based on current theme
+      const musicPath = this.MUSIC_TRACKS[this.currentTheme];
+      if (musicPath) {
+        this.music = new Audio(musicPath);
+        this.music.loop = true;
+        this.music.volume = 0.5;
+        this.music.preload = 'auto';
+      } else {
+        this.music = null;
+      }
 
       this.initialized = true;
     } catch (e) {
