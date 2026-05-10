@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { motion } from 'motion/react';
 import { audioManager } from '../services/audioService';
-import { Volume2, VolumeX, Pause, Play as PlayIcon, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Zap, Monitor } from 'lucide-react';
+import { Volume2, VolumeX, Pause, Play as PlayIcon, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Zap, Monitor, Maximize2, Minimize2 } from 'lucide-react';
 
 import { drawCar, shadeColor } from '../utils/carRenderer';
 import { initializeCarSprites } from '../utils/carSpriteLoader';
@@ -202,7 +202,8 @@ export const RacingGame: React.FC<RacingGameProps> = ({
   });
   const [isMuted, setIsMuted] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
-  const [aspectRatio, setAspectRatio] = useState<'4:3' | '16:9'>('4:3');
+  const [aspectRatio, setAspectRatio] = useState<'4:3' | '16:9'>('16:9');
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const isPausedRef = useRef(false);
   const keysRef = useRef<{ [key: string]: boolean }>({});
   const tiltRef = useRef<number>(0);
@@ -213,7 +214,7 @@ export const RacingGame: React.FC<RacingGameProps> = ({
   const [gameStarted, setGameStarted] = useState(false);
 
   const SCREEN_WIDTH = aspectRatio === '4:3' ? 800 : 1066;
-  const SCREEN_HEIGHT = 600;
+  const SCREEN_HEIGHT = aspectRatio === '4:3' ? 600 : 600;
 
   useEffect(() => {
     // Initialize car sprites on component mount
@@ -1460,6 +1461,37 @@ export const RacingGame: React.FC<RacingGameProps> = ({
     setAspectRatio(prev => prev === '4:3' ? '16:9' : '4:3');
   };
 
+  const toggleFullscreen = async () => {
+    const container = document.getElementById('game-container');
+    if (!document.fullscreenElement && container) {
+      try {
+        await container.requestFullscreen();
+        setIsFullscreen(true);
+      } catch (err) {
+        console.error('Fullscreen request failed:', err);
+      }
+    } else {
+      try {
+        await document.exitFullscreen();
+        setIsFullscreen(false);
+      } catch (err) {
+        console.error('Exit fullscreen failed:', err);
+      }
+    }
+  };
+
+  // Listen for fullscreen change events
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    };
+  }, []);
+
   const drawCheckpoint = (ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, passed: boolean) => {
     const archW = w * 2.5;
     const archH = h * 3;
@@ -1821,12 +1853,12 @@ export const RacingGame: React.FC<RacingGameProps> = ({
   };
 
   return (
-    <div className={`relative group w-full mx-auto ${aspectRatio === '4:3' ? 'max-w-[800px] aspect-[4/3]' : 'max-w-[1066px] aspect-[16/9]'}`}>
+    <div id="game-container" className={`relative group w-full mx-auto ${isFullscreen ? 'w-screen h-screen max-w-none' : ''} ${aspectRatio === '4:3' ? 'max-w-[800px] aspect-[4/3]' : 'max-w-[1066px] aspect-[16/9]'}`}>
       <canvas
         ref={canvasRef}
         width={SCREEN_WIDTH}
         height={SCREEN_HEIGHT}
-        className="w-full h-full rounded-sm border-4 border-zinc-800 shadow-2xl bg-black"
+        className={`w-full h-full rounded-sm border-4 border-zinc-800 shadow-2xl bg-black ${isFullscreen ? 'rounded-none border-0' : ''}`}
       />
       
       {/* HUD Overlay - Matching Image Style */}
@@ -1983,6 +2015,14 @@ export const RacingGame: React.FC<RacingGameProps> = ({
               >
                 <Monitor className="w-5 h-5" />
                 <span className="text-[10px] font-bold">{aspectRatio}</span>
+              </button>
+
+              <button 
+                onClick={toggleFullscreen}
+                className="p-2 bg-black/50 border border-white/40 rounded-sm hover:bg-white/10 transition-colors pointer-events-auto"
+                title={isFullscreen ? "Exit Fullscreen (ESC)" : "Fullscreen"}
+              >
+                {isFullscreen ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}
               </button>
 
               <button 
@@ -2158,15 +2198,24 @@ export const RacingGame: React.FC<RacingGameProps> = ({
             </div>
 
             <div className="space-y-6">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between gap-2">
                 <h3 className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Settings</h3>
-                <button 
-                  onClick={toggleAspectRatio}
-                  className="flex items-center gap-2 px-3 py-1 bg-white/5 border border-white/10 rounded-sm hover:bg-white/10 transition-colors"
-                >
-                  <Monitor className="w-3 h-3 text-zinc-400" />
-                  <span className="text-[10px] font-mono uppercase tracking-tighter text-zinc-300">{aspectRatio}</span>
-                </button>
+                <div className="flex items-center gap-2">
+                  <button 
+                    onClick={toggleAspectRatio}
+                    className="flex items-center gap-2 px-3 py-1 bg-white/5 border border-white/10 rounded-sm hover:bg-white/10 transition-colors"
+                  >
+                    <Monitor className="w-3 h-3 text-zinc-400" />
+                    <span className="text-[10px] font-mono uppercase tracking-tighter text-zinc-300">{aspectRatio}</span>
+                  </button>
+                  <button 
+                    onClick={toggleFullscreen}
+                    className="flex items-center gap-2 px-3 py-1 bg-white/5 border border-white/10 rounded-sm hover:bg-white/10 transition-colors"
+                    title={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
+                  >
+                    {isFullscreen ? <Minimize2 className="w-3 h-3 text-zinc-400" /> : <Maximize2 className="w-3 h-3 text-zinc-400" />}
+                  </button>
+                </div>
               </div>
 
               <div className="space-y-3">
