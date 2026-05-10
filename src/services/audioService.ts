@@ -56,11 +56,12 @@ export class GameAudio {
 
   // Royalty-free music tracks by theme (add your downloaded files here)
   private MUSIC_TRACKS: Record<string, string> = {
-    // Example: Add downloaded tracks from OpenGameArt
-    // 'neon_city': '/audio/music_neon_city.ogg',
-    // 'touge': '/audio/music_touge.ogg',
-    // 'desert': '/audio/music_desert.ogg',
-    // Default: procedural audio only (no background music)
+    // Default racing theme music - procedurally generated (CC0)
+    'mountain': '/audio/music_racing.wav',
+    'city': '/audio/music_racing.wav',
+    'desert': '/audio/music_racing.wav',
+    'neon_city': '/audio/music_racing.wav',
+    'touge': '/audio/music_racing.wav',
   };
 
   // Sound effect files (add your downloaded files here)
