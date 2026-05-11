@@ -498,28 +498,6 @@ const drawExhaust = (ctx: CanvasRenderingContext2D, x: number, y: number, w: num
   }
 };
 
-const drawLicensePlate = (ctx: CanvasRenderingContext2D, x: number, y: number, h: number, model: string) => {
-  ctx.fillStyle = '#facc15';
-  ctx.beginPath();
-  ctx.roundRect(x - 22, y - h * 0.28, 44, 16, 2);
-  ctx.fill();
-  ctx.fillStyle = '#000';
-  ctx.font = 'bold 11px monospace';
-  ctx.textAlign = 'center';
-  const labels: Record<string, string> = {
-    interceptor: 'POLICE',
-    muscle: 'V8',
-    rally: 'RALLY',
-    prototype: 'PROTO',
-    stealth: 'GHOST',
-    tank: 'HEAVY',
-    speedster: 'FAST',
-    drifter: 'DRIFT',
-  };
-  const text = labels[model] ?? 'DRIFT';
-  ctx.fillText(text, x, y - h * 0.28 + 12);
-};
-
 const drawBoostFlames = (ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number) => {
   ctx.save();
   const time = Date.now() / 50;
@@ -695,7 +673,6 @@ export const drawCar = (
   drawWindows(ctx, x, y, currentW, h, damage);
   drawTailLights(ctx, x, y, currentW, h, config, isBraking, damage);
   drawExhaust(ctx, x, y, currentW, config);
-  drawLicensePlate(ctx, x, y, h, config.model);
 
   // Damage Smoke Indicator
   if (damage > 70) {
