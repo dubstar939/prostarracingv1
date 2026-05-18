@@ -88,44 +88,109 @@ const drawSpoiler = (ctx: CanvasRenderingContext2D, x: number, y: number, w: num
   const forcedSmall = config.model === 'stealth' || config.model === 'muscle';
   if (config.spoiler === 'none' && !forcedLarge && !forcedSmall) return;
 
-  let wingHeight = 20;
-  let wingWidth = w * 0.8;
-  let mountOffset = 0.2;
+  let wingHeight = 15;
+  let wingWidth = w * 0.7;
+  let mountOffset = 0.25;
+  let mountHeight = 12;
 
+  // JDM-era appropriate sizing
   if (config.spoiler === 'small' || forcedSmall) {
-    wingHeight = 25;
-    wingWidth = w * 0.85;
+    wingHeight = 18;
+    wingWidth = w * 0.75;
+    mountHeight = 10;
   }
   if (config.spoiler === 'large' || forcedLarge) {
-    wingHeight = config.model === 'prototype' ? 60 : 45;
-    wingWidth = config.model === 'prototype' ? w * 1.25 : w * 1.1;
+    wingHeight = config.model === 'prototype' ? 35 : 28;
+    wingWidth = config.model === 'prototype' ? w * 1.1 : w * 0.9;
     mountOffset = 0.3;
+    mountHeight = config.model === 'prototype' ? 20 : 16;
   }
 
-  // Wing mounts
-  ctx.fillStyle = '#111';
-  ctx.fillRect(x - w * mountOffset - 2, y - h - wingHeight, 4, wingHeight + 10);
-  ctx.fillRect(x + w * mountOffset - 2, y - h - wingHeight, 4, wingHeight + 10);
-
-  // Main Wing
-  const wingGrad = ctx.createLinearGradient(x, y - h - wingHeight, x, y - h - wingHeight + 10);
-  wingGrad.addColorStop(0, '#333');
-  wingGrad.addColorStop(1, '#000');
-  ctx.fillStyle = wingGrad;
-
+  // Spoiler mounts (positioned on trunk deck, not roof)
+  // Mounts connect to rear deck area (y - h * 0.3 to y - h * 0.5)
+  ctx.fillStyle = '#1a1a1a';
+  
+  // Left mount
   ctx.beginPath();
-  ctx.moveTo(x - wingWidth / 2, y - h - wingHeight);
-  ctx.lineTo(x + wingWidth / 2, y - h - wingHeight);
-  ctx.lineTo(x + wingWidth / 2 - 5, y - h - wingHeight + 12);
-  ctx.lineTo(x - wingWidth / 2 + 5, y - h - wingHeight + 12);
+  ctx.moveTo(x - w * mountOffset + 4, y - h * 0.5);
+  ctx.lineTo(x - w * mountOffset - 4, y - h * 0.5);
+  ctx.lineTo(x - w * mountOffset - 6, y - h * 0.5 - mountHeight);
+  ctx.lineTo(x - w * mountOffset + 6, y - h * 0.5 - mountHeight);
+  ctx.closePath();
+  ctx.fill();
+  
+  // Right mount
+  ctx.beginPath();
+  ctx.moveTo(x + w * mountOffset + 4, y - h * 0.5);
+  ctx.lineTo(x + w * mountOffset - 4, y - h * 0.5);
+  ctx.lineTo(x + w * mountOffset - 6, y - h * 0.5 - mountHeight);
+  ctx.lineTo(x + w * mountOffset + 6, y - h * 0.5 - mountHeight);
   ctx.closePath();
   ctx.fill();
 
-  // Wing Endplates
+  // Main Wing (airfoil shape typical of JDM cars)
+  const wingBaseY = y - h * 0.5 - mountHeight;
+  const wingGrad = ctx.createLinearGradient(x, wingBaseY, x, wingBaseY + wingHeight);
+  wingGrad.addColorStop(0, '#2a2a2a');
+  wingGrad.addColorStop(0.5, '#1a1a1a');
+  wingGrad.addColorStop(1, '#0a0a0a');
+  ctx.fillStyle = wingGrad;
+
+  // Airfoil cross-section (curved top, flatter bottom)
+  ctx.beginPath();
+  ctx.moveTo(x - wingWidth / 2, wingBaseY);
+  // Top curve of airfoil
+  ctx.quadraticCurveTo(
+    x - wingWidth / 4, wingBaseY - wingHeight,
+    x, wingBaseY - wingHeight + 3
+  );
+  ctx.quadraticCurveTo(
+    x + wingWidth / 4, wingBaseY - wingHeight + 6,
+    x + wingWidth / 2, wingBaseY
+  );
+  // Bottom curve (slight camber)
+  ctx.quadraticCurveTo(
+    x + wingWidth / 4, wingBaseY + wingHeight * 0.3,
+    x, wingBaseY + wingHeight * 0.2
+  );
+  ctx.quadraticCurveTo(
+    x - wingWidth / 4, wingBaseY + wingHeight * 0.3,
+    x - wingWidth / 2, wingBaseY
+  );
+  ctx.closePath();
+  ctx.fill();
+
+  // Wing endplates (GT-style for large spoilers)
   if (config.spoiler === 'large' || forcedLarge) {
-    ctx.fillStyle = config.color;
-    ctx.fillRect(x - wingWidth / 2 - 2, y - h - wingHeight - 5, 4, 25);
-    ctx.fillRect(x + wingWidth / 2 - 2, y - h - wingHeight - 5, 4, 25);
+    ctx.fillStyle = shadeColor(config.color, -30);
+    
+    // Left endplate
+    ctx.beginPath();
+    ctx.moveTo(x - wingWidth / 2 - 3, wingBaseY - 2);
+    ctx.lineTo(x - wingWidth / 2 - 3, wingBaseY - wingHeight - 8);
+    ctx.lineTo(x - wingWidth / 2 + 8, wingBaseY - wingHeight - 8);
+    ctx.lineTo(x - wingWidth / 2 + 8, wingBaseY - 2);
+    ctx.closePath();
+    ctx.fill();
+    
+    // Right endplate
+    ctx.beginPath();
+    ctx.moveTo(x + wingWidth / 2 + 3, wingBaseY - 2);
+    ctx.lineTo(x + wingWidth / 2 + 3, wingBaseY - wingHeight - 8);
+    ctx.lineTo(x + wingWidth / 2 - 8, wingBaseY - wingHeight - 8);
+    ctx.lineTo(x + wingWidth / 2 - 8, wingBaseY - 2);
+    ctx.closePath();
+    ctx.fill();
+    
+    // Endplate accent line
+    ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(x - wingWidth / 2 - 1, wingBaseY - wingHeight - 4);
+    ctx.lineTo(x - wingWidth / 2 + 5, wingBaseY - wingHeight - 4);
+    ctx.moveTo(x + wingWidth / 2 + 1, wingBaseY - wingHeight - 4);
+    ctx.lineTo(x + wingWidth / 2 - 5, wingBaseY - wingHeight - 4);
+    ctx.stroke();
   }
 };
 
@@ -162,7 +227,7 @@ const drawMainBody = (ctx: CanvasRenderingContext2D, x: number, y: number, w: nu
     return val + (Math.random() - 0.5) * (damage / 8);
   };
 
-  // Body silhouette per chassis (rear 3/4 view)
+  // Body silhouette per chassis (rear 3/4 view) - refined for JDM era aesthetics
   if (config.model === 'speedster') {
     // Sleek wedge — narrow shoulders tapering inward
     ctx.moveTo(dent(x - w * 0.48), dent(y - h * 0.05));
@@ -176,10 +241,10 @@ const drawMainBody = (ctx: CanvasRenderingContext2D, x: number, y: number, w: nu
     ctx.lineTo(dent(x + w * 0.52), dent(y - h * 0.65));
     ctx.lineTo(dent(x + w * 0.52), dent(y - h * 0.05));
   } else if (config.model === 'drifter') {
-    // Aggressive low slung — flared rear
+    // Classic 90s JDM coupe - flared rear quarters, tapered deck
     ctx.moveTo(dent(x - w * 0.52), dent(y - h * 0.05));
-    ctx.lineTo(dent(x - w * 0.4), dent(y - h * 0.6));
-    ctx.lineTo(dent(x + w * 0.4), dent(y - h * 0.6));
+    ctx.lineTo(dent(x - w * 0.45), dent(y - h * 0.55));
+    ctx.lineTo(dent(x + w * 0.45), dent(y - h * 0.55));
     ctx.lineTo(dent(x + w * 0.52), dent(y - h * 0.05));
   } else if (config.model === 'muscle') {
     // Wide squared-off shoulders, raised rear
@@ -208,10 +273,10 @@ const drawMainBody = (ctx: CanvasRenderingContext2D, x: number, y: number, w: nu
     ctx.lineTo(dent(x + w * 0.46), dent(y - h * 0.4));
     ctx.lineTo(dent(x + w * 0.5), dent(y - h * 0.05));
   } else {
-    // interceptor and any fallback
+    // interceptor and any fallback - refined sedan shape with proper trunk deck
     ctx.moveTo(dent(x - w * 0.5), dent(y - h * 0.05));
-    ctx.lineTo(dent(x - w * 0.46), dent(y - h * 0.6));
-    ctx.lineTo(dent(x + w * 0.46), dent(y - h * 0.6));
+    ctx.lineTo(dent(x - w * 0.48), dent(y - h * 0.52));
+    ctx.lineTo(dent(x + w * 0.48), dent(y - h * 0.52));
     ctx.lineTo(dent(x + w * 0.5), dent(y - h * 0.05));
   }
   ctx.closePath();
@@ -253,6 +318,7 @@ const drawCabin = (ctx: CanvasRenderingContext2D, x: number, y: number, w: numbe
     ctx.lineTo(x + w * 0.38, y - h * 1.15);
     ctx.lineTo(x + w * 0.42, y - h * 0.65);
   } else if (config.model === 'speedster') {
+    // Low wedge canopy
     ctx.moveTo(x - w * 0.38, y - h * 0.55);
     ctx.lineTo(x - w * 0.22, y - h * 0.95);
     ctx.lineTo(x + w * 0.22, y - h * 0.95);
@@ -281,18 +347,24 @@ const drawCabin = (ctx: CanvasRenderingContext2D, x: number, y: number, w: numbe
     ctx.lineTo(x - w * 0.22, y - h * 0.85);
     ctx.lineTo(x + w * 0.22, y - h * 0.85);
     ctx.lineTo(x + w * 0.34, y - h * 0.55);
+  } else if (config.model === 'drifter') {
+    // Classic 90s JDM coupe greenhouse (Silvia/Skyline style)
+    ctx.moveTo(x - w * 0.42, y - h * 0.58);
+    ctx.lineTo(x - w * 0.35, y - h * 0.95);
+    ctx.lineTo(x + w * 0.28, y - h * 0.95);
+    ctx.lineTo(x + w * 0.42, y - h * 0.58);
   } else {
-    // drifter, interceptor, fallback
-    ctx.moveTo(x - w * 0.4, y - h * 0.6);
-    ctx.lineTo(x - w * 0.3, y - h * 1.05);
-    ctx.lineTo(x + w * 0.3, y - h * 1.05);
-    ctx.lineTo(x + w * 0.4, y - h * 0.6);
+    // interceptor and fallback - refined sedan/wagon shape
+    ctx.moveTo(x - w * 0.42, y - h * 0.58);
+    ctx.lineTo(x - w * 0.32, y - h * 0.95);
+    ctx.lineTo(x + w * 0.32, y - h * 0.95);
+    ctx.lineTo(x + w * 0.42, y - h * 0.58);
   }
   ctx.closePath();
   ctx.fill();
 
   // Roof Highlight (Soft PBR Gradient)
-  const roofGrad = ctx.createLinearGradient(x, y - h * 1.1, x, y - h * 0.6);
+  const roofGrad = ctx.createLinearGradient(x, y - h * 1.0, x, y - h * 0.55);
   roofGrad.addColorStop(0, 'rgba(255,255,255,0.25)');
   roofGrad.addColorStop(1, 'rgba(255,255,255,0)');
   ctx.fillStyle = roofGrad;
