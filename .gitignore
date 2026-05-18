@@ -1,1 +1,19 @@
-Nothing should be ignored based on the provided file changes. The only modified file is a TypeScript source file (`src/utils/carRenderer.ts`), which should not be ignored. There are no build artifacts, dependencies, or temporary files in the changes that would warrant adding ignore rules.
+# Dependencies
+node_modules/
+
+# Editor/IDE files
+.vscode/
+
+# Logs and temp files
+*.log
+*.tmp
+
+# Build artifacts
+dist/
+build/
+*.js.map
+
+# Environment files
+.env
+.env.local
+*.env.*
