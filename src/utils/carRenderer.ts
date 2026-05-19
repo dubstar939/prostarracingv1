@@ -92,6 +92,7 @@ const drawSpoiler = (ctx: CanvasRenderingContext2D, x: number, y: number, w: num
   let wingWidth = w * 0.7;
   let mountOffset = 0.25;
   let mountHeight = 12;
+  let trunkDeckY = y - h * 0.32; // Proper trunk deck position - authentic JDM placement
 
   // JDM-era appropriate sizing
   if (config.spoiler === 'small' || forcedSmall) {
@@ -107,29 +108,28 @@ const drawSpoiler = (ctx: CanvasRenderingContext2D, x: number, y: number, w: num
   }
 
   // Spoiler mounts (positioned on trunk deck, not roof)
-  // Mounts connect to rear deck area (y - h * 0.3 to y - h * 0.5)
   ctx.fillStyle = '#1a1a1a';
   
   // Left mount
   ctx.beginPath();
-  ctx.moveTo(x - w * mountOffset + 4, y - h * 0.5);
-  ctx.lineTo(x - w * mountOffset - 4, y - h * 0.5);
-  ctx.lineTo(x - w * mountOffset - 6, y - h * 0.5 - mountHeight);
-  ctx.lineTo(x - w * mountOffset + 6, y - h * 0.5 - mountHeight);
+  ctx.moveTo(x - w * mountOffset + 4, trunkDeckY);
+  ctx.lineTo(x - w * mountOffset - 4, trunkDeckY);
+  ctx.lineTo(x - w * mountOffset - 6, trunkDeckY - mountHeight);
+  ctx.lineTo(x - w * mountOffset + 6, trunkDeckY - mountHeight);
   ctx.closePath();
   ctx.fill();
   
   // Right mount
   ctx.beginPath();
-  ctx.moveTo(x + w * mountOffset + 4, y - h * 0.5);
-  ctx.lineTo(x + w * mountOffset - 4, y - h * 0.5);
-  ctx.lineTo(x + w * mountOffset - 6, y - h * 0.5 - mountHeight);
-  ctx.lineTo(x + w * mountOffset + 6, y - h * 0.5 - mountHeight);
+  ctx.moveTo(x + w * mountOffset + 4, trunkDeckY);
+  ctx.lineTo(x + w * mountOffset - 4, trunkDeckY);
+  ctx.lineTo(x + w * mountOffset - 6, trunkDeckY - mountHeight);
+  ctx.lineTo(x + w * mountOffset + 6, trunkDeckY - mountHeight);
   ctx.closePath();
   ctx.fill();
 
   // Main Wing (airfoil shape typical of JDM cars)
-  const wingBaseY = y - h * 0.5 - mountHeight;
+  const wingBaseY = trunkDeckY - mountHeight;
   const wingGrad = ctx.createLinearGradient(x, wingBaseY, x, wingBaseY + wingHeight);
   wingGrad.addColorStop(0, '#2a2a2a');
   wingGrad.addColorStop(0.5, '#1a1a1a');
@@ -286,7 +286,7 @@ const drawMainBody = (ctx: CanvasRenderingContext2D, x: number, y: number, w: nu
   ctx.strokeStyle = 'rgba(0,0,0,0.15)';
   ctx.lineWidth = 1.5;
   ctx.beginPath();
-  // Trunk line
+  // Trunk line - visual separation for trunk deck
   ctx.moveTo(x - w * 0.35, y - h * 0.3);
   ctx.lineTo(x + w * 0.35, y - h * 0.3);
   // Vertical split
@@ -600,21 +600,213 @@ const drawBoostFlames = (ctx: CanvasRenderingContext2D, x: number, y: number, w:
 };
 
 /**
+ * Draw aggressive front bumper with air intakes - JDM style
+ */
+const drawFrontBumperIntake = (ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number) => {
+  ctx.fillStyle = '#1a1a1a';
+  // Large center air intake splitter
+  ctx.fillRect(x - w * 0.15, y - h * 0.02, w * 0.3, h * 0.1);
+  
+  // Side intake scoops
+  ctx.beginPath();
+  ctx.moveTo(x - w * 0.35, y - h * 0.05);
+  ctx.lineTo(x - w * 0.28, y - h * 0.05);
+  ctx.lineTo(x - w * 0.32, y + h * 0.03);
+  ctx.lineTo(x - w * 0.38, y + h * 0.03);
+  ctx.closePath();
+  ctx.fill();
+  
+  ctx.beginPath();
+  ctx.moveTo(x + w * 0.35, y - h * 0.05);
+  ctx.lineTo(x + w * 0.28, y - h * 0.05);
+  ctx.lineTo(x + w * 0.32, y + h * 0.03);
+  ctx.lineTo(x + w * 0.38, y + h * 0.03);
+  ctx.closePath();
+  ctx.fill();
+};
+
+/**
+ * Draw engine hood scoop vents - realistic 90s JDM style
+ */
+const drawHoodScoopVents = (ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, scoop: 'center' | 'dual' | 'offset') => {
+  const ventColor = '#0a0a0a';
+  ctx.fillStyle = ventColor;
+  
+  if (scoop === 'center') {
+    // Single centered scoop (muscle, speedster style)
+    ctx.beginPath();
+    ctx.roundRect(x - w * 0.08, y - h * 0.52, w * 0.16, h * 0.15, 2);
+    ctx.fill();
+    
+    // Vent lines inside scoop
+    ctx.strokeStyle = '#2a2a2a';
+    ctx.lineWidth = 1;
+    for (let i = 0; i < 3; i++) {
+      ctx.beginPath();
+      ctx.moveTo(x - w * 0.06, y - h * 0.48 + i * 4);
+      ctx.lineTo(x + w * 0.06, y - h * 0.48 + i * 4);
+      ctx.stroke();
+    }
+  } else if (scoop === 'dual') {
+    // Dual fender scoops (rally style)
+    for (let side of [-1, 1]) {
+      ctx.beginPath();
+      ctx.roundRect(x + side * w * 0.3, y - h * 0.48, w * 0.12, h * 0.12, 2);
+      ctx.fill();
+      
+      ctx.strokeStyle = '#2a2a2a';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(x + side * w * 0.32, y - h * 0.44);
+      ctx.lineTo(x + side * w * 0.4, y - h * 0.44);
+      ctx.stroke();
+    }
+  } else if (scoop === 'offset') {
+    // Asymmetric scoop on one side (interceptor police style)
+    ctx.beginPath();
+    ctx.roundRect(x - w * 0.28, y - h * 0.5, w * 0.1, h * 0.08, 2);
+    ctx.fill();
+    
+    ctx.strokeStyle = '#2a2a2a';
+    ctx.lineWidth = 1;
+    for (let i = 0; i < 2; i++) {
+      ctx.beginPath();
+      ctx.moveTo(x - w * 0.26, y - h * 0.47 + i * 3);
+      ctx.lineTo(x - w * 0.22, y - h * 0.47 + i * 3);
+      ctx.stroke();
+    }
+  }
+};
+
+/**
+ * Draw side skirts with aerodynamic vents - JDM tuner aesthetic
+ */
+const drawSideSkirts = (ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, bodyKit: string) => {
+  if (bodyKit === 'stock') return; // Stock cars don't have visible skirts
+  
+  ctx.fillStyle = '#1a1a1a';
+  
+  // Left side skirt
+  ctx.beginPath();
+  ctx.moveTo(x - w * 0.48, y - h * 0.2);
+  ctx.lineTo(x - w * 0.48, y - h * 0.45);
+  ctx.lineTo(x - w * 0.45, y - h * 0.45);
+  ctx.lineTo(x - w * 0.45, y - h * 0.2);
+  ctx.closePath();
+  ctx.fill();
+  
+  // Right side skirt
+  ctx.beginPath();
+  ctx.moveTo(x + w * 0.48, y - h * 0.2);
+  ctx.lineTo(x + w * 0.48, y - h * 0.45);
+  ctx.lineTo(x + w * 0.45, y - h * 0.45);
+  ctx.lineTo(x + w * 0.45, y - h * 0.2);
+  ctx.closePath();
+  ctx.fill();
+  
+  // Vent details on skirts
+  if (bodyKit !== 'street') {
+    ctx.strokeStyle = '#2a2a2a';
+    ctx.lineWidth = 1;
+    
+    // Left skirt vents
+    for (let i = 0; i < 2; i++) {
+      ctx.beginPath();
+      ctx.moveTo(x - w * 0.47, y - h * 0.25 + i * 8);
+      ctx.lineTo(x - w * 0.46, y - h * 0.25 + i * 8);
+      ctx.stroke();
+    }
+    
+    // Right skirt vents
+    for (let i = 0; i < 2; i++) {
+      ctx.beginPath();
+      ctx.moveTo(x + w * 0.47, y - h * 0.25 + i * 8);
+      ctx.lineTo(x + w * 0.46, y - h * 0.25 + i * 8);
+      ctx.stroke();
+    }
+  }
+};
+
+/**
+ * Draw front splitter for aero body kits - aggressive 90s styling
+ */
+const drawFrontSplitter = (ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, bodyKit: string) => {
+  if (bodyKit === 'stock' || bodyKit === 'street') return;
+  
+  ctx.fillStyle = '#0a0a0a';
+  
+  // Main splitter blade
+  const splitterWidth = bodyKit === 'racing' ? w * 0.65 : w * 0.75;
+  ctx.beginPath();
+  ctx.moveTo(x - splitterWidth / 2, y + h * 0.02);
+  ctx.lineTo(x + splitterWidth / 2, y + h * 0.02);
+  ctx.lineTo(x + splitterWidth / 2 - 2, y + h * 0.08);
+  ctx.lineTo(x - splitterWidth / 2 + 2, y + h * 0.08);
+  ctx.closePath();
+  ctx.fill();
+  
+  // Splitter struts
+  ctx.strokeStyle = '#2a2a2a';
+  ctx.lineWidth = 1.5;
+  for (let i = -2; i <= 2; i++) {
+    if (i !== 0) {
+      ctx.beginPath();
+      ctx.moveTo(x + i * splitterWidth / 6, y + h * 0.02);
+      ctx.lineTo(x + i * splitterWidth / 6 - 0.5, y + h * 0.08);
+      ctx.stroke();
+    }
+  }
+};
+
+/**
+ * Draw rear diffuser undertray - aggressive aerodynamics
+ */
+const drawRearDiffuser = (ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, bodyKit: string) => {
+  if (bodyKit === 'stock' || bodyKit === 'street') return;
+  
+  ctx.fillStyle = '#0a0a0a';
+  
+  // Main diffuser body
+  const diffuserWidth = bodyKit === 'racing' ? w * 0.5 : w * 0.6;
+  ctx.beginPath();
+  ctx.moveTo(x - diffuserWidth / 2, y - h * 0.28);
+  ctx.lineTo(x + diffuserWidth / 2, y - h * 0.28);
+  ctx.lineTo(x + diffuserWidth / 2 + 2, y - h * 0.18);
+  ctx.lineTo(x - diffuserWidth / 2 - 2, y - h * 0.18);
+  ctx.closePath();
+  ctx.fill();
+  
+  // Diffuser fins
+  ctx.strokeStyle = '#2a2a2a';
+  ctx.lineWidth = 1;
+  for (let i = 0; i < 3; i++) {
+    ctx.beginPath();
+    ctx.moveTo(x - diffuserWidth / 2 + 4 + i * 8, y - h * 0.28);
+    ctx.lineTo(x - diffuserWidth / 2 + 6 + i * 8, y - h * 0.18);
+    ctx.stroke();
+  }
+};
+
+/**
  * Per-chassis decorative details that overlay the body to give each car a
  * recognizable silhouette (hood scoops, light pods, sharkfins, etc).
+ * Enhanced with JDM 90s-2000s styling and aerodynamic details.
  */
 const drawChassisAccents = (ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, config: CarConfig) => {
   ctx.save();
+  
+  // Apply body kit aero details
+  drawFrontSplitter(ctx, x, y, w, h, config.bodyKit);
+  drawRearDiffuser(ctx, x, y, w, h, config.bodyKit);
+  drawSideSkirts(ctx, x, y, w, h, config.bodyKit);
+  
   if (config.model === 'muscle') {
-    // Center hood scoop on the rear deck
-    ctx.fillStyle = '#0a0a0a';
-    ctx.beginPath();
-    ctx.roundRect(x - w * 0.08, y - h * 0.55, w * 0.16, h * 0.18, 3);
-    ctx.fill();
-    ctx.fillStyle = '#222';
-    ctx.fillRect(x - w * 0.06, y - h * 0.5, w * 0.12, h * 0.04);
+    // Aggressive center hood scoop with deep vents
+    drawHoodScoopVents(ctx, x, y, w, h, 'center');
   } else if (config.model === 'rally') {
-    // Roof-mounted light pod cluster
+    // Dual fender scoops + roof pod lights
+    drawHoodScoopVents(ctx, x, y, w, h, 'dual');
+    
     ctx.fillStyle = '#111';
     ctx.fillRect(x - w * 0.32, y - h * 1.25, w * 0.64, 5);
     for (let i = -2; i <= 2; i++) {
@@ -673,13 +865,11 @@ const drawChassisAccents = (ctx: CanvasRenderingContext2D, x: number, y: number,
     ctx.lineTo(x + w * 0.32, y - h * 0.55);
     ctx.stroke();
   } else if (config.model === 'speedster') {
-    // Center hood vent slits
-    ctx.fillStyle = '#000';
-    for (let i = 0; i < 3; i++) {
-      ctx.fillRect(x - w * 0.06, y - h * 0.5 + i * 4, w * 0.12, 2);
-    }
+    // Center hood vent slits + aggressive front intake
+    drawHoodScoopVents(ctx, x, y, w, h, 'center');
+    drawFrontBumperIntake(ctx, x, y, w, h);
   } else if (config.model === 'drifter') {
-    // Side intake gills on the rear quarters
+    // Side intake gills on the rear quarters (classic S15 Silvia style)
     ctx.fillStyle = '#000';
     for (let i = 0; i < 3; i++) {
       ctx.fillRect(x - w * 0.5, y - h * 0.4 + i * 5, w * 0.06, 2.5);
@@ -689,7 +879,12 @@ const drawChassisAccents = (ctx: CanvasRenderingContext2D, x: number, y: number,
     // Roof rail / brush bar
     ctx.fillStyle = '#1f2937';
     ctx.fillRect(x - w * 0.4, y - h * 1.18, w * 0.8, 4);
+  } else if (config.model === 'interceptor') {
+    // Police interceptor - offset hood scoop + aggressive bumper
+    drawHoodScoopVents(ctx, x, y, w, h, 'offset');
+    drawFrontBumperIntake(ctx, x, y, w, h);
   }
+  
   ctx.restore();
 };
 
