@@ -514,26 +514,32 @@ const drawTailLights = (ctx: CanvasRenderingContext2D, x: number, y: number, w: 
   }
 };
 
-const drawExhaust = (ctx: CanvasRenderingContext2D, x: number, y: number, w: number, config: CarConfig) => {
+const drawExhaust = (ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, config: CarConfig) => {
   ctx.fillStyle = '#71717a';
-  const exhaustSize = config.engine > 2 ? 14 : 10;
+  
+  // Scale exhaust size based on car dimensions - prevents disproportionate pipes on distant cars
+  const baseExhaustScale = Math.min(w, h) * 0.08; // Scales with smallest dimension
+  let exhaustSize = config.engine > 2 ? baseExhaustScale : baseExhaustScale * 0.7;
+  
+  // Scale exhaust Y position to maintain proper proportions
+  const exhaustY = y + h * 0.1; // Position at rear bumper level
 
   // Single fat center exhaust for prototype + stealth (jet-style)
   if (config.model === 'prototype' || config.model === 'stealth') {
-    const size = config.model === 'prototype' ? exhaustSize + 4 : exhaustSize + 1;
+    const size = config.model === 'prototype' ? exhaustSize * 1.4 : exhaustSize * 0.9;
     ctx.beginPath();
-    ctx.arc(x, y - 8, size, 0, Math.PI * 2);
+    ctx.arc(x, exhaustY, size, 0, Math.PI * 2);
     ctx.fill();
     ctx.fillStyle = '#000';
     ctx.beginPath();
-    ctx.arc(x, y - 8, size - 3, 0, Math.PI * 2);
+    ctx.arc(x, exhaustY, size * 0.75, 0, Math.PI * 2);
     ctx.fill();
     if (config.model === 'prototype') {
       ctx.fillStyle = 'rgba(255,140,0,0.4)';
       ctx.shadowBlur = 16;
       ctx.shadowColor = '#ff6600';
       ctx.beginPath();
-      ctx.arc(x, y - 8, size - 5, 0, Math.PI * 2);
+      ctx.arc(x, exhaustY, size * 0.6, 0, Math.PI * 2);
       ctx.fill();
       ctx.shadowBlur = 0;
     }
@@ -545,27 +551,27 @@ const drawExhaust = (ctx: CanvasRenderingContext2D, x: number, y: number, w: num
   if (isQuad) {
     const offset = config.model === 'drifter' ? 0.35 : (config.model === 'muscle' ? 0.4 : 0.25);
     ctx.beginPath();
-    ctx.arc(x - w * offset, y - 8, exhaustSize, 0, Math.PI * 2);
-    ctx.arc(x - w * (offset - 0.1), y - 8, exhaustSize, 0, Math.PI * 2);
-    ctx.arc(x + w * (offset - 0.1), y - 8, exhaustSize, 0, Math.PI * 2);
-    ctx.arc(x + w * offset, y - 8, exhaustSize, 0, Math.PI * 2);
+    ctx.arc(x - w * offset, exhaustY, exhaustSize, 0, Math.PI * 2);
+    ctx.arc(x - w * (offset - 0.1), exhaustY, exhaustSize, 0, Math.PI * 2);
+    ctx.arc(x + w * (offset - 0.1), exhaustY, exhaustSize, 0, Math.PI * 2);
+    ctx.arc(x + w * offset, exhaustY, exhaustSize, 0, Math.PI * 2);
     ctx.fill();
     ctx.fillStyle = '#000';
     ctx.beginPath();
-    ctx.arc(x - w * offset, y - 8, exhaustSize - 3, 0, Math.PI * 2);
-    ctx.arc(x - w * (offset - 0.1), y - 8, exhaustSize - 3, 0, Math.PI * 2);
-    ctx.arc(x + w * (offset - 0.1), y - 8, exhaustSize - 3, 0, Math.PI * 2);
-    ctx.arc(x + w * offset, y - 8, exhaustSize - 3, 0, Math.PI * 2);
+    ctx.arc(x - w * offset, exhaustY, exhaustSize * 0.75, 0, Math.PI * 2);
+    ctx.arc(x - w * (offset - 0.1), exhaustY, exhaustSize * 0.75, 0, Math.PI * 2);
+    ctx.arc(x + w * (offset - 0.1), exhaustY, exhaustSize * 0.75, 0, Math.PI * 2);
+    ctx.arc(x + w * offset, exhaustY, exhaustSize * 0.75, 0, Math.PI * 2);
     ctx.fill();
   } else {
     ctx.beginPath();
-    ctx.arc(x - w / 4, y - 8, exhaustSize, 0, Math.PI * 2);
-    ctx.arc(x + w / 4, y - 8, exhaustSize, 0, Math.PI * 2);
+    ctx.arc(x - w / 4, exhaustY, exhaustSize, 0, Math.PI * 2);
+    ctx.arc(x + w / 4, exhaustY, exhaustSize, 0, Math.PI * 2);
     ctx.fill();
     ctx.fillStyle = '#000';
     ctx.beginPath();
-    ctx.arc(x - w / 4, y - 8, exhaustSize - 3, 0, Math.PI * 2);
-    ctx.arc(x + w / 4, y - 8, exhaustSize - 3, 0, Math.PI * 2);
+    ctx.arc(x - w / 4, exhaustY, exhaustSize * 0.75, 0, Math.PI * 2);
+    ctx.arc(x + w / 4, exhaustY, exhaustSize * 0.75, 0, Math.PI * 2);
     ctx.fill();
   }
 };
@@ -939,7 +945,7 @@ export const drawCar = (
   drawChassisAccents(ctx, x, y, currentW, h, config);
   drawWindows(ctx, x, y, currentW, h, damage);
   drawTailLights(ctx, x, y, currentW, h, config, isBraking, damage);
-  drawExhaust(ctx, x, y, currentW, config);
+  drawExhaust(ctx, x, y, currentW, h, config);
 
   // Damage Smoke Indicator
   if (damage > 70) {
