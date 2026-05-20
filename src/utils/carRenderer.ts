@@ -62,9 +62,9 @@ const drawTires = (ctx: CanvasRenderingContext2D, x: number, y: number, w: numbe
     ctx.arc(wx, wy, rimSize / 2, 0, Math.PI * 2);
     ctx.fill();
 
-    // Spokes
+    // Spokes - SCALED LINE WIDTH
     ctx.strokeStyle = '#1f2937';
-    ctx.lineWidth = 2;
+    ctx.lineWidth = Math.max(1, rimSize * 0.08); // Scales with rim size
     for (let i = 0; i < 5; i++) {
       const angle = (i * Math.PI * 2) / 5;
       ctx.beginPath();
@@ -182,9 +182,9 @@ const drawSpoiler = (ctx: CanvasRenderingContext2D, x: number, y: number, w: num
     ctx.closePath();
     ctx.fill();
     
-    // Endplate accent line
+    // Endplate accent line - SCALED LINE WIDTH
     ctx.strokeStyle = 'rgba(255,255,255,0.3)';
-    ctx.lineWidth = 1;
+    ctx.lineWidth = Math.max(0.5, h * 0.02);
     ctx.beginPath();
     ctx.moveTo(x - wingWidth / 2 - 1, wingBaseY - wingHeight - 4);
     ctx.lineTo(x - wingWidth / 2 + 5, wingBaseY - wingHeight - 4);
@@ -282,9 +282,9 @@ const drawMainBody = (ctx: CanvasRenderingContext2D, x: number, y: number, w: nu
   ctx.closePath();
   ctx.fill();
 
-  // Panel Lines & Stylized Details
+  // Panel Lines & Stylized Details - SCALED LINE WIDTH
   ctx.strokeStyle = 'rgba(0,0,0,0.15)';
-  ctx.lineWidth = 1.5;
+  ctx.lineWidth = Math.max(0.5, h * 0.02);
   ctx.beginPath();
   // Trunk line - visual separation for trunk deck
   ctx.moveTo(x - w * 0.35, y - h * 0.3);
@@ -294,10 +294,10 @@ const drawMainBody = (ctx: CanvasRenderingContext2D, x: number, y: number, w: nu
   ctx.lineTo(x, y - h * 0.3);
   ctx.stroke();
 
-  // 939PRO Neon Trim Lines
+  // 939PRO Neon Trim Lines - SCALED LINE WIDTH
   ctx.strokeStyle = shadeColor(config.color, 50);
-  ctx.lineWidth = 2;
-  ctx.shadowBlur = 10;
+  ctx.lineWidth = Math.max(1, h * 0.03);
+  ctx.shadowBlur = Math.max(5, h * 0.08);
   ctx.shadowColor = ctx.strokeStyle;
   ctx.beginPath();
   ctx.moveTo(x - w * 0.4, y - h * 0.1);
@@ -399,7 +399,7 @@ const drawDecals = (ctx: CanvasRenderingContext2D, x: number, y: number, w: numb
     ctx.fill();
   } else if (config.decal === 'tribal') {
     ctx.strokeStyle = '#000';
-    ctx.lineWidth = 4;
+    ctx.lineWidth = Math.max(1.5, h * 0.05);
     ctx.beginPath();
     ctx.moveTo(x - w * 0.3, y - h * 0.4);
     ctx.lineTo(x - w * 0.1, y - h * 0.2);
@@ -433,22 +433,23 @@ const drawWindows = (ctx: CanvasRenderingContext2D, x: number, y: number, w: num
   ctx.lineTo(x - w * 0.35, y - h * 0.68);
   ctx.fill();
 
-  // Damage Cracks
+  // Damage Cracks - SCALED POSITIONS
   if (damage > 20) {
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
-    ctx.lineWidth = 1;
+    ctx.lineWidth = Math.max(0.5, h * 0.015);
     ctx.beginPath();
-    ctx.moveTo(x - w * 0.1, y - h + 20);
-    ctx.lineTo(x + w * 0.1, y - h + 40);
-    ctx.moveTo(x + w * 0.05, y - h + 25);
-    ctx.lineTo(x - w * 0.05, y - h + 45);
+    ctx.moveTo(x - w * 0.1, y - h + h * 0.15);
+    ctx.lineTo(x + w * 0.1, y - h + h * 0.25);
+    ctx.moveTo(x + w * 0.05, y - h + h * 0.18);
+    ctx.lineTo(x - w * 0.05, y - h + h * 0.3);
     ctx.stroke();
   }
   if (damage > 60) {
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+    ctx.lineWidth = Math.max(0.5, h * 0.015);
     ctx.beginPath();
-    ctx.moveTo(x - w * 0.2, y - h + 15);
-    ctx.lineTo(x - w * 0.1, y - h + 35);
+    ctx.moveTo(x - w * 0.2, y - h + h * 0.1);
+    ctx.lineTo(x - w * 0.1, y - h + h * 0.25);
     ctx.stroke();
   }
 };
@@ -458,48 +459,59 @@ const drawTailLights = (ctx: CanvasRenderingContext2D, x: number, y: number, w: 
   const rightLightOut = damage > 70 && Math.random() > 0.98;
   const bothOut = damage > 90;
 
+  // SCALED LIGHT DIMENSIONS
+  const tailLightWidth = w * 0.15;
+  const tailLightHeight = h * 0.08;
+  const tailLightY = y - h * 0.5; // Scaled Y position
+
   const drawLight = (lx: number, ly: number, lw: number, lh: number, isOut: boolean) => {
     if (isOut || bothOut) {
       ctx.fillStyle = '#220000';
       ctx.shadowBlur = 0;
     } else {
       ctx.fillStyle = isBraking ? '#ff0000' : '#880000';
-      ctx.shadowBlur = isBraking ? 45 : 15;
+      ctx.shadowBlur = isBraking ? Math.max(20, h * 0.3) : Math.max(8, h * 0.1);
       ctx.shadowColor = '#ff0000';
     }
     ctx.beginPath();
-    ctx.roundRect(lx, ly, lw, lh, 3);
+    ctx.roundRect(lx, ly, lw, lh, Math.max(1, lh * 0.3));
     ctx.fill();
   };
 
   if (config.bodyKit === 'extreme') {
     ctx.fillStyle = isBraking ? '#ff0000' : '#880000';
-    ctx.shadowBlur = isBraking ? 45 : 15;
+    ctx.shadowBlur = isBraking ? Math.max(20, h * 0.3) : Math.max(8, h * 0.1);
     ctx.shadowColor = '#ff0000';
     if (damage > 80) ctx.globalAlpha = 0.3;
-    ctx.fillRect(x - w * 0.45, y - h * 0.48, w * 0.9, h * 0.05);
+    const barHeight = h * 0.04;
+    ctx.fillRect(x - w * 0.45, tailLightY, w * 0.9, barHeight);
     ctx.globalAlpha = 1.0;
   } else {
-    drawLight(x - w * 0.44, y - h * 0.52, w / 4, h / 10, leftLightOut);
-    drawLight(x + w * 0.44 - w / 4, y - h * 0.52, w / 4, h / 10, rightLightOut);
+    drawLight(x - w * 0.44, tailLightY, tailLightWidth, tailLightHeight, leftLightOut);
+    drawLight(x + w * 0.44 - tailLightWidth, tailLightY, tailLightWidth, tailLightHeight, rightLightOut);
   }
   
-  // Inner light glow
+  // Inner light glow - SCALED
   if (!bothOut) {
     ctx.fillStyle = isBraking ? '#ffffff' : '#ffcccc';
-    ctx.shadowBlur = isBraking ? 25 : 10;
+    ctx.shadowBlur = isBraking ? Math.max(12, h * 0.18) : Math.max(6, h * 0.08);
     if (config.bodyKit !== 'extreme') {
-      if (!leftLightOut) ctx.beginPath(), ctx.roundRect(x - w * 0.38, y - h * 0.5 + 1, w / 15, h / 20, 1), ctx.fill();
-      if (!rightLightOut) ctx.beginPath(), ctx.roundRect(x + w * 0.38 - w / 15, y - h * 0.5 + 1, w / 15, h / 20, 1), ctx.fill();
+      const innerLightWidth = tailLightWidth * 0.6;
+      const innerLightHeight = tailLightHeight * 0.5;
+      if (!leftLightOut) ctx.beginPath(), ctx.roundRect(x - w * 0.38, tailLightY + tailLightHeight * 0.1, innerLightWidth, innerLightHeight, 1), ctx.fill();
+      if (!rightLightOut) ctx.beginPath(), ctx.roundRect(x + w * 0.38 - innerLightWidth, tailLightY + tailLightHeight * 0.1, innerLightWidth, innerLightHeight, 1), ctx.fill();
     }
   }
   ctx.shadowBlur = 0;
 
+  // Brake light indicator - SCALED
   if (isBraking && damage < 95) {
     ctx.fillStyle = '#ff0000';
-    ctx.shadowBlur = 15;
+    ctx.shadowBlur = Math.max(8, h * 0.1);
     ctx.shadowColor = '#ff0000';
-    ctx.fillRect(x - 15, y - h + 5, 30, 4);
+    const brakeBarWidth = w * 0.12;
+    const brakeBarHeight = h * 0.03;
+    ctx.fillRect(x - brakeBarWidth / 2, y - h + h * 0.04, brakeBarWidth, brakeBarHeight);
     ctx.shadowBlur = 0;
   }
 
@@ -507,9 +519,9 @@ const drawTailLights = (ctx: CanvasRenderingContext2D, x: number, y: number, w: 
   if (config.model === 'interceptor') {
     const flash = Math.floor(Date.now() / 200) % 2 === 0;
     ctx.fillStyle = flash ? '#0000ff' : '#ff0000';
-    ctx.shadowBlur = 20;
+    ctx.shadowBlur = Math.max(12, h * 0.2);
     ctx.shadowColor = ctx.fillStyle;
-    ctx.fillRect(x - w * 0.2, y - h - 5, w * 0.4, 6);
+    ctx.fillRect(x - w * 0.2, y - h - h * 0.05, w * 0.4, h * 0.05);
     ctx.shadowBlur = 0;
   }
 };
@@ -590,13 +602,16 @@ const drawBoostFlames = (ctx: CanvasRenderingContext2D, x: number, y: number, w:
     grad.addColorStop(1, 'transparent');
     
     ctx.fillStyle = grad;
-    ctx.shadowBlur = 20;
+    ctx.shadowBlur = Math.max(12, h * 0.2);
     ctx.shadowColor = '#00ffff';
     
+    // SCALED FLAME ANIMATION
+    const flameScaleX = w * 0.03;
+    const flameScaleY = h * 0.08;
     ctx.beginPath();
     ctx.moveTo(fx - flameW/2, fy);
     ctx.lineTo(fx + flameW/2, fy);
-    ctx.lineTo(fx + (Math.sin(time) * 5), fy + flameH + (Math.cos(time) * 10));
+    ctx.lineTo(fx + (Math.sin(time) * flameScaleX), fy + flameH + (Math.cos(time) * flameScaleY));
     ctx.fill();
   };
 
@@ -638,30 +653,33 @@ const drawHoodScoopVents = (ctx: CanvasRenderingContext2D, x: number, y: number,
   const ventColor = '#0a0a0a';
   ctx.fillStyle = ventColor;
   
+  // SCALED VENT LINE WIDTH
+  const ventLineWidth = Math.max(0.5, h * 0.015);
+  
   if (scoop === 'center') {
     // Single centered scoop (muscle, speedster style)
     ctx.beginPath();
-    ctx.roundRect(x - w * 0.08, y - h * 0.52, w * 0.16, h * 0.15, 2);
+    ctx.roundRect(x - w * 0.08, y - h * 0.52, w * 0.16, h * 0.15, Math.max(1, h * 0.02));
     ctx.fill();
     
     // Vent lines inside scoop
     ctx.strokeStyle = '#2a2a2a';
-    ctx.lineWidth = 1;
+    ctx.lineWidth = ventLineWidth;
     for (let i = 0; i < 3; i++) {
       ctx.beginPath();
-      ctx.moveTo(x - w * 0.06, y - h * 0.48 + i * 4);
-      ctx.lineTo(x + w * 0.06, y - h * 0.48 + i * 4);
+      ctx.moveTo(x - w * 0.06, y - h * 0.48 + i * h * 0.03);
+      ctx.lineTo(x + w * 0.06, y - h * 0.48 + i * h * 0.03);
       ctx.stroke();
     }
   } else if (scoop === 'dual') {
     // Dual fender scoops (rally style)
     for (let side of [-1, 1]) {
       ctx.beginPath();
-      ctx.roundRect(x + side * w * 0.3, y - h * 0.48, w * 0.12, h * 0.12, 2);
+      ctx.roundRect(x + side * w * 0.3, y - h * 0.48, w * 0.12, h * 0.12, Math.max(1, h * 0.02));
       ctx.fill();
       
       ctx.strokeStyle = '#2a2a2a';
-      ctx.lineWidth = 1;
+      ctx.lineWidth = ventLineWidth;
       ctx.beginPath();
       ctx.moveTo(x + side * w * 0.32, y - h * 0.44);
       ctx.lineTo(x + side * w * 0.4, y - h * 0.44);
@@ -670,15 +688,15 @@ const drawHoodScoopVents = (ctx: CanvasRenderingContext2D, x: number, y: number,
   } else if (scoop === 'offset') {
     // Asymmetric scoop on one side (interceptor police style)
     ctx.beginPath();
-    ctx.roundRect(x - w * 0.28, y - h * 0.5, w * 0.1, h * 0.08, 2);
+    ctx.roundRect(x - w * 0.28, y - h * 0.5, w * 0.1, h * 0.08, Math.max(1, h * 0.02));
     ctx.fill();
     
     ctx.strokeStyle = '#2a2a2a';
-    ctx.lineWidth = 1;
+    ctx.lineWidth = ventLineWidth;
     for (let i = 0; i < 2; i++) {
       ctx.beginPath();
-      ctx.moveTo(x - w * 0.26, y - h * 0.47 + i * 3);
-      ctx.lineTo(x - w * 0.22, y - h * 0.47 + i * 3);
+      ctx.moveTo(x - w * 0.26, y - h * 0.47 + i * h * 0.03);
+      ctx.lineTo(x - w * 0.22, y - h * 0.47 + i * h * 0.03);
       ctx.stroke();
     }
   }
@@ -710,24 +728,24 @@ const drawSideSkirts = (ctx: CanvasRenderingContext2D, x: number, y: number, w: 
   ctx.closePath();
   ctx.fill();
   
-  // Vent details on skirts
+  // Vent details on skirts - SCALED LINE WIDTH
   if (bodyKit !== 'street') {
     ctx.strokeStyle = '#2a2a2a';
-    ctx.lineWidth = 1;
+    ctx.lineWidth = Math.max(0.5, h * 0.015);
     
     // Left skirt vents
     for (let i = 0; i < 2; i++) {
       ctx.beginPath();
-      ctx.moveTo(x - w * 0.47, y - h * 0.25 + i * 8);
-      ctx.lineTo(x - w * 0.46, y - h * 0.25 + i * 8);
+      ctx.moveTo(x - w * 0.47, y - h * 0.25 + i * h * 0.05);
+      ctx.lineTo(x - w * 0.46, y - h * 0.25 + i * h * 0.05);
       ctx.stroke();
     }
     
     // Right skirt vents
     for (let i = 0; i < 2; i++) {
       ctx.beginPath();
-      ctx.moveTo(x + w * 0.47, y - h * 0.25 + i * 8);
-      ctx.lineTo(x + w * 0.46, y - h * 0.25 + i * 8);
+      ctx.moveTo(x + w * 0.47, y - h * 0.25 + i * h * 0.05);
+      ctx.lineTo(x + w * 0.46, y - h * 0.25 + i * h * 0.05);
       ctx.stroke();
     }
   }
@@ -751,9 +769,9 @@ const drawFrontSplitter = (ctx: CanvasRenderingContext2D, x: number, y: number, 
   ctx.closePath();
   ctx.fill();
   
-  // Splitter struts
+  // Splitter struts - SCALED LINE WIDTH
   ctx.strokeStyle = '#2a2a2a';
-  ctx.lineWidth = 1.5;
+  ctx.lineWidth = Math.max(0.8, h * 0.02);
   for (let i = -2; i <= 2; i++) {
     if (i !== 0) {
       ctx.beginPath();
@@ -782,9 +800,9 @@ const drawRearDiffuser = (ctx: CanvasRenderingContext2D, x: number, y: number, w
   ctx.closePath();
   ctx.fill();
   
-  // Diffuser fins
+  // Diffuser fins - SCALED LINE WIDTH
   ctx.strokeStyle = '#2a2a2a';
-  ctx.lineWidth = 1;
+  ctx.lineWidth = Math.max(0.5, h * 0.015);
   for (let i = 0; i < 3; i++) {
     ctx.beginPath();
     ctx.moveTo(x - diffuserWidth / 2 + 4 + i * 8, y - h * 0.28);
@@ -814,23 +832,23 @@ const drawChassisAccents = (ctx: CanvasRenderingContext2D, x: number, y: number,
     drawHoodScoopVents(ctx, x, y, w, h, 'dual');
     
     ctx.fillStyle = '#111';
-    ctx.fillRect(x - w * 0.32, y - h * 1.25, w * 0.64, 5);
+    ctx.fillRect(x - w * 0.32, y - h * 1.25, w * 0.64, h * 0.035);
     for (let i = -2; i <= 2; i++) {
       const lx = x + i * w * 0.12;
-      const grad = ctx.createRadialGradient(lx, y - h * 1.27, 0, lx, y - h * 1.27, 6);
+      const grad = ctx.createRadialGradient(lx, y - h * 1.27, 0, lx, y - h * 1.27, w * 0.05);
       grad.addColorStop(0, '#ffffff');
       grad.addColorStop(1, '#ffd166');
       ctx.fillStyle = grad;
-      ctx.shadowBlur = 12;
+      ctx.shadowBlur = Math.max(8, h * 0.12);
       ctx.shadowColor = '#ffd166';
       ctx.beginPath();
-      ctx.arc(lx, y - h * 1.27, 5, 0, Math.PI * 2);
+      ctx.arc(lx, y - h * 1.27, w * 0.04, 0, Math.PI * 2);
       ctx.fill();
     }
     ctx.shadowBlur = 0;
     // Roof rack rails
     ctx.strokeStyle = '#1f2937';
-    ctx.lineWidth = 2;
+    ctx.lineWidth = Math.max(1, h * 0.025);
     ctx.beginPath();
     ctx.moveTo(x - w * 0.34, y - h * 1.18);
     ctx.lineTo(x - w * 0.34, y - h * 0.95);
@@ -850,20 +868,22 @@ const drawChassisAccents = (ctx: CanvasRenderingContext2D, x: number, y: number,
     ctx.lineTo(x + w * 0.02, y - h * 0.45);
     ctx.closePath();
     ctx.fill();
-    // Side cooling intakes on the haunches
+    // Side cooling intakes on the haunches - SCALED
+    const coolingIntakeW = w * 0.1;
+    const coolingIntakeH = h * 0.08;
     ctx.fillStyle = '#000';
-    ctx.fillRect(x - w * 0.55, y - h * 0.32, w * 0.12, h * 0.08);
-    ctx.fillRect(x + w * 0.43, y - h * 0.32, w * 0.12, h * 0.08);
+    ctx.fillRect(x - w * 0.55, y - h * 0.32, coolingIntakeW, coolingIntakeH);
+    ctx.fillRect(x + w * 0.43, y - h * 0.32, coolingIntakeW, coolingIntakeH);
   } else if (config.model === 'stealth') {
     // Cyan running-light strip across the rear
     ctx.fillStyle = '#06b6d4';
-    ctx.shadowBlur = 14;
+    ctx.shadowBlur = Math.max(10, h * 0.15);
     ctx.shadowColor = '#06b6d4';
-    ctx.fillRect(x - w * 0.4, y - h * 0.18, w * 0.8, 2.5);
+    ctx.fillRect(x - w * 0.4, y - h * 0.18, w * 0.8, h * 0.02);
     ctx.shadowBlur = 0;
     // Faceted panel seams catching the angular silhouette
     ctx.strokeStyle = 'rgba(255,255,255,0.18)';
-    ctx.lineWidth = 1;
+    ctx.lineWidth = Math.max(0.5, h * 0.015);
     ctx.beginPath();
     ctx.moveTo(x - w * 0.46, y - h * 0.4);
     ctx.lineTo(x - w * 0.32, y - h * 0.55);
@@ -875,16 +895,17 @@ const drawChassisAccents = (ctx: CanvasRenderingContext2D, x: number, y: number,
     drawHoodScoopVents(ctx, x, y, w, h, 'center');
     drawFrontBumperIntake(ctx, x, y, w, h);
   } else if (config.model === 'drifter') {
-    // Side intake gills on the rear quarters (classic S15 Silvia style)
+    // Side intake gills on the rear quarters (classic S15 Silvia style) - SCALED
     ctx.fillStyle = '#000';
+    const gillHeight = h * 0.025;
     for (let i = 0; i < 3; i++) {
-      ctx.fillRect(x - w * 0.5, y - h * 0.4 + i * 5, w * 0.06, 2.5);
-      ctx.fillRect(x + w * 0.44, y - h * 0.4 + i * 5, w * 0.06, 2.5);
+      ctx.fillRect(x - w * 0.5, y - h * 0.4 + i * h * 0.04, w * 0.06, gillHeight);
+      ctx.fillRect(x + w * 0.44, y - h * 0.4 + i * h * 0.04, w * 0.06, gillHeight);
     }
   } else if (config.model === 'tank') {
-    // Roof rail / brush bar
+    // Roof rail / brush bar - SCALED
     ctx.fillStyle = '#1f2937';
-    ctx.fillRect(x - w * 0.4, y - h * 1.18, w * 0.8, 4);
+    ctx.fillRect(x - w * 0.4, y - h * 1.18, w * 0.8, h * 0.04);
   } else if (config.model === 'interceptor') {
     // Police interceptor - offset hood scoop + aggressive bumper
     drawHoodScoopVents(ctx, x, y, w, h, 'offset');
@@ -947,12 +968,15 @@ export const drawCar = (
   drawTailLights(ctx, x, y, currentW, h, config, isBraking, damage);
   drawExhaust(ctx, x, y, currentW, h, config);
 
-  // Damage Smoke Indicator
+  // Damage Smoke Indicator - SCALED POSITIONS
   if (damage > 70) {
     ctx.fillStyle = 'rgba(50, 50, 50, 0.4)';
     for (let i = 0; i < 3; i++) {
+      const smokeOffsetX = (Math.random() - 0.5) * w * 0.3;
+      const smokeOffsetY = Math.random() * h * 0.15;
+      const smokeRadius = (10 + Math.random() * 10) * (h / 100);
       ctx.beginPath();
-      ctx.arc(x + (Math.random() - 0.5) * 40, y - h - 10 - Math.random() * 20, 10 + Math.random() * 10, 0, Math.PI * 2);
+      ctx.arc(x + smokeOffsetX, y - h - smokeOffsetY, smokeRadius, 0, Math.PI * 2);
       ctx.fill();
     }
   }
