@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { motion } from 'motion/react';
 import { audioManager } from '../services/audioService';
-import { Volume2, VolumeX, Pause, Play as PlayIcon, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Zap, Monitor, Maximize2, Minimize2 } from 'lucide-react';
+import { Volume2, VolumeX, Pause, Play as PlayIcon, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Zap, Monitor, Maximize2, Minimize2, Gamepad2 } from 'lucide-react';
 
 import { drawCar, shadeColor } from '../utils/carRenderer';
 import { initializeCarSprites } from '../utils/carSpriteLoader';
@@ -212,6 +212,8 @@ export const RacingGame: React.FC<RacingGameProps> = ({
   const [isMobile, setIsMobile] = useState(false);
   const [checkpointNotify, setCheckpointNotify] = useState(false);
   const [gameStarted, setGameStarted] = useState(false);
+  const [gamepadConnected, setGamepadConnected] = useState(false);
+  const gamepadIndexRef = useRef<number | null>(null);
 
   const SCREEN_WIDTH = aspectRatio === '4:3' ? 800 : 1066;
   const SCREEN_HEIGHT = aspectRatio === '4:3' ? 600 : 600;
@@ -719,11 +721,35 @@ export const RacingGame: React.FC<RacingGameProps> = ({
         setTimeout(() => setCheckpointNotify(false), 2000);
       }
 
-      const isBraking = keysRef.current['ArrowDown'] || keysRef.current['KeyS'];
-      const isAccelerating = keysRef.current['ArrowUp'] || keysRef.current['KeyW'];
+      // Get gamepad input
+      let gamepadSteering = 0;
+      let gamepadAccelerating = false;
+      let gamepadBraking = false;
+      let gamepadTurbo = false;
+
+      if (gamepadConnected && gamepadIndexRef.current !== null) {
+        const gamepad = navigator.getGamepads()[gamepadIndexRef.current];
+        if (gamepad) {
+          // Axis 0: Left stick horizontal (-1 left, 1 right)
+          gamepadSteering = gamepad.axes[0] || 0;
+          // Deadzone for steering
+          if (Math.abs(gamepadSteering) < 0.15) gamepadSteering = 0;
+          
+          // Button 7: A button (accelerate)
+          gamepadAccelerating = gamepad.buttons[7]?.pressed || false;
+          // Button 6: B button (brake/reverse)
+          gamepadBraking = gamepad.buttons[6]?.pressed || false;
+          // Button 0: X button (turbo)
+          gamepadTurbo = gamepad.buttons[0]?.pressed || false;
+        }
+      }
+
+      const isBraking = keysRef.current['ArrowDown'] || keysRef.current['KeyS'] || gamepadBraking;
+      const isAccelerating = keysRef.current['ArrowUp'] || keysRef.current['KeyW'] || gamepadAccelerating;
       const isSteering = keysRef.current['ArrowLeft'] || keysRef.current['KeyA'] || 
                          keysRef.current['ArrowRight'] || keysRef.current['KeyD'] || 
-                         (useTilt && Math.abs(tiltRef.current) > 0.1);
+                         (useTilt && Math.abs(tiltRef.current) > 0.1) ||
+                         (gamepadConnected && Math.abs(gamepadSteering) > 0.15);
       
       // Enhanced Tire Physics
       const baseGrip = (weather === 'rain' ? 0.55 : 0.9) + (tireGrip / 150);
@@ -795,9 +821,12 @@ export const RacingGame: React.FC<RacingGameProps> = ({
 
       speed *= driftSlowdown;
 
-      const steeringInput = (keysRef.current['ArrowLeft'] || keysRef.current['KeyA'] ? -1 : 0) + 
-                            (keysRef.current['ArrowRight'] || keysRef.current['KeyD'] ? 1 : 0) + 
-                            (useTilt ? tiltRef.current : 0);
+      // Combine keyboard, tilt, and gamepad steering inputs
+      const keyboardSteering = (keysRef.current['ArrowLeft'] || keysRef.current['KeyA'] ? -1 : 0) + 
+                               (keysRef.current['ArrowRight'] || keysRef.current['KeyD'] ? 1 : 0);
+      const steeringInput = keyboardSteering + 
+                            (useTilt ? tiltRef.current : 0) + 
+                            (gamepadConnected ? gamepadSteering : 0);
 
       playerX += steeringInput * dt * currentHandling * driftFactor * speedPercent;
 
@@ -871,11 +900,11 @@ export const RacingGame: React.FC<RacingGameProps> = ({
           });
         }
       } else {
-        if (shiftKey || isDrifting) {
+        if (shiftKey || isDrifting || gamepadTurbo) {
           const chargeMultiplier = isDrifting ? 2.5 : 1.0;
           turboMeter = Math.min(100, turboMeter + TURBO_CHARGE_RATE * chargeMultiplier * dt);
         }
-        if (ctrlKey && turboMeter >= 100) {
+        if (ctrlKey || gamepadTurbo && turboMeter >= 100) {
           turboActive = true;
           turboDuration = TURBO_BOOST_DURATION;
           audioManager.playTurbo();
@@ -1407,9 +1436,27 @@ export const RacingGame: React.FC<RacingGameProps> = ({
       }
     };
 
+    const handleGamepadConnected = (e: Event) => {
+      const gamepadEvent = e as GamepadEvent;
+      gamepadIndexRef.current = gamepadEvent.gamepad.index;
+      setGamepadConnected(true);
+      console.log('Gamepad connected:', gamepadEvent.gamepad.id);
+    };
+
+    const handleGamepadDisconnected = (e: Event) => {
+      const gamepadEvent = e as GamepadEvent;
+      if (gamepadIndexRef.current === gamepadEvent.gamepad.index) {
+        gamepadIndexRef.current = null;
+      }
+      setGamepadConnected(false);
+      console.log('Gamepad disconnected:', gamepadEvent.gamepad.id);
+    };
+
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('keyup', handleKeyUp);
     window.addEventListener('deviceorientation', handleOrientation);
+    window.addEventListener('gamepadconnected', handleGamepadConnected);
+    window.addEventListener('gamepaddisconnected', handleGamepadDisconnected);
 
     loop();
 
@@ -1419,6 +1466,8 @@ export const RacingGame: React.FC<RacingGameProps> = ({
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
       window.removeEventListener('deviceorientation', handleOrientation);
+      window.removeEventListener('gamepadconnected', handleGamepadConnected);
+      window.removeEventListener('gamepaddisconnected', handleGamepadDisconnected);
     };
   }, [level, onRaceEnd, isReady, carConfig, aspectRatio]);
 
@@ -1456,6 +1505,30 @@ export const RacingGame: React.FC<RacingGameProps> = ({
       return next;
     });
   };
+
+  // Poll gamepad state in a separate effect for pause button support
+  useEffect(() => {
+    let animationFrameId: number;
+    
+    const pollGamepad = () => {
+      if (gamepadConnected && gamepadIndexRef.current !== null) {
+        const gamepad = navigator.getGamepads()[gamepadIndexRef.current];
+        if (gamepad) {
+          // Button 9: Start button (pause)
+          if (gamepad.buttons[9]?.pressed) {
+            togglePause();
+            // Add small delay to prevent rapid toggling
+            setTimeout(() => {}, 500);
+          }
+        }
+      }
+      animationFrameId = requestAnimationFrame(pollGamepad);
+    };
+    
+    animationFrameId = requestAnimationFrame(pollGamepad);
+    
+    return () => cancelAnimationFrame(animationFrameId);
+  }, [gamepadConnected]);
 
   const toggleAspectRatio = () => {
     setAspectRatio(prev => prev === '4:3' ? '16:9' : '4:3');
@@ -1999,6 +2072,15 @@ export const RacingGame: React.FC<RacingGameProps> = ({
             </div>
             
             <div className="flex items-center gap-4 drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)]">
+              {/* Gamepad Status Indicator */}
+              <div 
+                className={`p-2 border rounded-sm transition-all flex items-center gap-2 ${gamepadConnected ? 'bg-green-500 border-green-400 text-white shadow-[0_0_10px_rgba(34,197,94,0.5)]' : 'bg-black/50 border-white/40 text-white/70'}`}
+                title={gamepadConnected ? "Gamepad Connected" : "No Gamepad"}
+              >
+                <Gamepad2 className={`w-5 h-5 ${gamepadConnected ? 'animate-pulse' : ''}`} />
+                <span className="text-[10px] font-bold uppercase tracking-tighter">{gamepadConnected ? 'Ready' : 'None'}</span>
+              </div>
+
               <button 
                 onClick={() => setUseTilt(!useTilt)}
                 className={`p-2 border rounded-sm transition-all pointer-events-auto flex items-center gap-2 ${useTilt ? 'bg-cyan-500 border-cyan-400 text-white shadow-[0_0_10px_rgba(6,182,212,0.5)]' : 'bg-black/50 border-white/40 text-white/70 hover:bg-white/10'}`}
@@ -2147,6 +2229,27 @@ export const RacingGame: React.FC<RacingGameProps> = ({
                 </button>
               </div>
             </div>
+          )}
+
+          {/* Gamepad Controls Info Overlay - shown briefly when gamepad connects */}
+          {gamepadConnected && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black/70 backdrop-blur-md border border-green-500/50 px-6 py-3 rounded-sm pointer-events-none"
+            >
+              <div className="flex items-center gap-4 text-xs text-white">
+                <Gamepad2 className="w-4 h-4 text-green-400" />
+                <span className="font-bold uppercase tracking-wider">Gamepad Connected</span>
+                <span className="text-zinc-400">|</span>
+                <span className="text-zinc-300">L-Stick: Steer</span>
+                <span className="text-zinc-300">A: Gas</span>
+                <span className="text-zinc-300">B: Brake</span>
+                <span className="text-zinc-300">X: Turbo</span>
+                <span className="text-zinc-300">Start: Pause</span>
+              </div>
+            </motion.div>
           )}
 
           {isPaused && (
