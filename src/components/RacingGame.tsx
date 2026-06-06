@@ -7,6 +7,7 @@ import { drawCar, shadeColor } from '../utils/carRenderer';
 import { initializeCarSprites } from '../utils/carSpriteLoader';
 
 import { CarConfig, RaceMode, PERFORMANCE_PARTS, CarModelType } from '../types';
+import { DifficultyLevel, DIFFICULTY_PRESETS } from '../constants/gameConfig';
 
 import { BIOMES, TRACK_TILESET } from '../constants/assets';
 
@@ -37,6 +38,10 @@ interface RacingGameProps {
   mode: RaceMode;
   /** Chassis the player has been introduced to (used to populate AI opponents). */
   availableOpponentModels: CarModelType[];
+  /** Difficulty preset applied to opponent speed, damage, and checkpoint timing. */
+  difficulty?: DifficultyLevel;
+  /** Whether audio starts muted. */
+  initialMuted?: boolean;
   /** Callback triggered when the race finishes. The 4th arg is the list of opponent chassis featured in this race (used to grant unlocks on a win). */
   onRaceEnd: (position: number, time: number, score?: number, opponentModels?: CarModelType[]) => void;
   /** Callback to return to the previous menu. */
@@ -165,15 +170,17 @@ const project = (
  *   onRaceEnd={(pos, time) => console.log(pos, time)} 
  * />
  */
-export const RacingGame: React.FC<RacingGameProps> = ({ 
-  level, 
-  trackTheme, 
-  carConfig, 
-  setCarConfig, 
-  mode, 
+export const RacingGame: React.FC<RacingGameProps> = ({
+  level,
+  trackTheme,
+  carConfig,
+  setCarConfig,
+  mode,
+  difficulty = 'normal',
+  initialMuted = false,
   availableOpponentModels,
-  onRaceEnd, 
-  onBack 
+  onRaceEnd,
+  onBack
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isReady, setIsReady] = useState(false);
@@ -604,7 +611,7 @@ export const RacingGame: React.FC<RacingGameProps> = ({
     const TURBO_MAX_SPEED = 18000 + (carConfig.engine - 1) * 1000;
     const TURBO_CHARGE_RATE = 25 + (carConfig.turbo - 1) * 10; // Percent per second
     const TURBO_BOOST_DURATION = 3 + (carConfig.turbo - 1) * 0.5; // Seconds
-    let checkpointTime = 40;
+    let checkpointTime = 40 * DIFFICULTY_PRESETS[difficulty].checkpointTimeMult;
 
     // Weather State
     let rainParticles: { x: number; y: number; speed: number; length: number }[] = [];
@@ -715,7 +722,7 @@ export const RacingGame: React.FC<RacingGameProps> = ({
 
       if (playerSegment.isCheckpoint && !playerSegment.hasPassed) {
         playerSegment.hasPassed = true;
-        checkpointTime = Math.min(99, checkpointTime + 30);
+        checkpointTime = Math.min(99, checkpointTime + 30 * DIFFICULTY_PRESETS[difficulty].checkpointTimeMult);
         audioManager.playTurbo();
         setCheckpointNotify(true);
         setTimeout(() => setCheckpointNotify(false), 2000);
@@ -832,7 +839,7 @@ export const RacingGame: React.FC<RacingGameProps> = ({
 
       if ((playerX < -1) || (playerX > 1)) {
         if (speed > offRoadLimit) speed += offRoadDecel * dt;
-        if (speed > offRoadLimit * 2) damage = Math.min(100, damage + dt * 5);
+        if (speed > offRoadLimit * 2) damage = Math.min(100, damage + dt * 5 * DIFFICULTY_PRESETS[difficulty].damageMultiplier);
       }
 
       playerX = Math.max(-2, Math.min(2, playerX));
@@ -927,7 +934,7 @@ export const RacingGame: React.FC<RacingGameProps> = ({
         let lookAheadSegment = findSegment(lookAheadZ);
         let curveAhead = Math.abs(lookAheadSegment.curve);
         
-        let baseTargetSpeed = 7500 + (level * 400);
+        let baseTargetSpeed = (7500 + (level * 400)) * DIFFICULTY_PRESETS[difficulty].opponentSpeedMult;
         if (mode === 'tokyo-expressway') {
           // Rival is much faster and more aggressive
           baseTargetSpeed = 9000 + (level * 600);
@@ -1422,7 +1429,7 @@ export const RacingGame: React.FC<RacingGameProps> = ({
 
     const handleKeyDown = (e: KeyboardEvent) => {
       keysRef.current[e.code] = true;
-      if (e.code === 'KeyP') togglePause();
+      if (e.code === 'KeyP' || e.code === 'Escape') togglePause();
     };
 
     const handleKeyUp = (e: KeyboardEvent) => {
@@ -1469,10 +1476,11 @@ export const RacingGame: React.FC<RacingGameProps> = ({
       window.removeEventListener('gamepadconnected', handleGamepadConnected);
       window.removeEventListener('gamepaddisconnected', handleGamepadDisconnected);
     };
-  }, [level, onRaceEnd, isReady, carConfig, aspectRatio]);
+  }, [level, onRaceEnd, isReady, carConfig, aspectRatio, difficulty]);
 
   const handleStartRace = () => {
     audioManager.init();
+    if (initialMuted) audioManager.setMuted(true);
     audioManager.startMusic();
     
     let count = 3;
@@ -2185,17 +2193,17 @@ export const RacingGame: React.FC<RacingGameProps> = ({
                   onPointerDown={() => keysRef.current['ArrowLeft'] = true}
                   onPointerUp={() => keysRef.current['ArrowLeft'] = false}
                   onPointerLeave={() => keysRef.current['ArrowLeft'] = false}
-                  className="w-16 h-16 bg-white/10 backdrop-blur-md border border-white/20 rounded-full flex items-center justify-center active:bg-white/30 transition-colors"
+                  className="w-20 h-20 bg-white/15 backdrop-blur-md border-2 border-white/30 rounded-full flex items-center justify-center active:bg-white/40 active:scale-95 transition-all touch-none select-none"
                 >
-                  <ChevronLeft className="w-8 h-8" />
+                  <ChevronLeft className="w-10 h-10" />
                 </button>
                 <button
                   onPointerDown={() => keysRef.current['ArrowRight'] = true}
                   onPointerUp={() => keysRef.current['ArrowRight'] = false}
                   onPointerLeave={() => keysRef.current['ArrowRight'] = false}
-                  className="w-16 h-16 bg-white/10 backdrop-blur-md border border-white/20 rounded-full flex items-center justify-center active:bg-white/30 transition-colors"
+                  className="w-20 h-20 bg-white/15 backdrop-blur-md border-2 border-white/30 rounded-full flex items-center justify-center active:bg-white/40 active:scale-95 transition-all touch-none select-none"
                 >
-                  <ChevronRight className="w-8 h-8" />
+                  <ChevronRight className="w-10 h-10" />
                 </button>
               </div>
 
@@ -2206,26 +2214,26 @@ export const RacingGame: React.FC<RacingGameProps> = ({
                     onPointerDown={() => keysRef.current['ControlLeft'] = true}
                     onPointerUp={() => keysRef.current['ControlLeft'] = false}
                     onPointerLeave={() => keysRef.current['ControlLeft'] = false}
-                    className={`w-16 h-16 backdrop-blur-md border rounded-full flex items-center justify-center transition-all ${hud.turbo >= 100 ? 'bg-blue-500/40 border-blue-400 animate-pulse' : 'bg-white/10 border-white/20 opacity-50'}`}
+                    className={`w-20 h-20 backdrop-blur-md border-2 rounded-full flex items-center justify-center transition-all touch-none select-none ${hud.turbo >= 100 ? 'bg-blue-500/50 border-blue-400 animate-pulse shadow-[0_0_15px_#3b82f6]' : 'bg-white/10 border-white/20 opacity-60'}`}
                   >
-                    <Zap className="w-8 h-8" />
+                    <Zap className="w-10 h-10" />
                   </button>
                   <button
                     onPointerDown={() => keysRef.current['ArrowDown'] = true}
                     onPointerUp={() => keysRef.current['ArrowDown'] = false}
                     onPointerLeave={() => keysRef.current['ArrowDown'] = false}
-                    className="w-16 h-16 bg-red-500/20 backdrop-blur-md border border-red-500/40 rounded-full flex items-center justify-center active:bg-red-500/40 transition-colors"
+                    className="w-20 h-20 bg-red-500/20 backdrop-blur-md border-2 border-red-500/50 rounded-full flex items-center justify-center active:bg-red-500/50 active:scale-95 transition-all touch-none select-none"
                   >
-                    <ChevronDown className="w-8 h-8" />
+                    <ChevronDown className="w-10 h-10" />
                   </button>
                 </div>
                 <button
                   onPointerDown={() => keysRef.current['ArrowUp'] = true}
                   onPointerUp={() => keysRef.current['ArrowUp'] = false}
                   onPointerLeave={() => keysRef.current['ArrowUp'] = false}
-                  className="w-36 h-20 bg-emerald-500/20 backdrop-blur-md border border-emerald-500/40 rounded-2xl flex items-center justify-center active:bg-emerald-500/40 transition-colors"
+                  className="w-48 h-20 bg-emerald-500/25 backdrop-blur-md border-2 border-emerald-500/50 rounded-2xl flex items-center justify-center active:bg-emerald-500/50 active:scale-95 transition-all touch-none select-none"
                 >
-                  <ChevronUp className="w-10 h-10" />
+                  <ChevronUp className="w-12 h-12" />
                 </button>
               </div>
             </div>

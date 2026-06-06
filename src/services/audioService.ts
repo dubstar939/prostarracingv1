@@ -380,6 +380,10 @@ export class GameAudio {
     osc.stop(time + 0.4);
   }
 
+  public setMuted(muted: boolean) {
+    if (this.isMuted !== muted) this.toggleMute();
+  }
+
   public toggleMute() {
     this.isMuted = !this.isMuted;
     if (this.isMuted) {
