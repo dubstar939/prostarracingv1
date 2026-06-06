@@ -9,12 +9,22 @@
 
 import type { CarConfig, CarModelType } from '../types';
 import { drawCar } from './carRenderer';
+import car1 from '../assets/car1.gif';
+import car2 from '../assets/car2.gif';
+import car3 from '../assets/car3.gif';
+import car4 from '../assets/car4.gif';
 
 export type CarModel = CarModelType;
 
-/**
- * Per-chassis flattering default color used to render the showroom thumbnail.
- */
+export const CAR_ASSETS = {
+  car1,
+  car2,
+  car3,
+  car4,
+};
+
+export const cars = Object.values(CAR_ASSETS);
+
 const THUMBNAIL_COLORS: Record<CarModel, string> = {
   speedster: '#ef4444',
   drifter: '#22d3ee',
@@ -24,6 +34,13 @@ const THUMBNAIL_COLORS: Record<CarModel, string> = {
   interceptor: '#0f172a',
   prototype: '#a855f7',
   stealth: '#1f2937',
+};
+
+const GIF_ASSETS: Partial<Record<CarModel, string>> = {
+  speedster: car1,
+  drifter:   car2,
+  muscle:    car3,
+  tank:      car4,
 };
 
 const ALL_MODELS: CarModel[] = [
@@ -90,6 +107,8 @@ const renderThumbnail = (model: CarModel): string => {
  * outside of a browser environment.
  */
 export const getCarAssetForModel = (model: CarModel): string => {
+  const gif = GIF_ASSETS[model];
+  if (gif) return gif;
   if (typeof document === 'undefined') return '';
   const cached = thumbnailCache.get(model);
   if (cached) return cached;
@@ -97,15 +116,6 @@ export const getCarAssetForModel = (model: CarModel): string => {
   thumbnailCache.set(model, url);
   return url;
 };
-
-export const CAR_ASSETS: Record<CarModel, string> = new Proxy(
-  {} as Record<CarModel, string>,
-  {
-    get: (_target, prop: string) => getCarAssetForModel(prop as CarModel),
-    ownKeys: () => ALL_MODELS as string[],
-    getOwnPropertyDescriptor: () => ({ enumerable: true, configurable: true }),
-  }
-);
 
 export const MODEL_TO_ASSET: Record<CarModel, CarModel> = ALL_MODELS.reduce(
   (acc, m) => {
