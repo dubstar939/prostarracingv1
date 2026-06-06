@@ -205,7 +205,11 @@ export const RacingGame: React.FC<RacingGameProps> = ({
     rivalDistance: 0,
     driftScore: 0,
     bustTimer: 0,
-    isBusted: false
+    isBusted: false,
+    spMistakeFlash: false,
+    spPressureIndicator: 0,
+    spTunnelZone: false,
+    spHighSpeed: false
   });
   const [isMuted, setIsMuted] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
@@ -300,6 +304,18 @@ export const RacingGame: React.FC<RacingGameProps> = ({
     let bustTimer = 0;
     let isBusted = false;
 
+    // SP-Battle system state
+    let spMistakeFlash = 0;         // seconds remaining for mistake flash FX
+    let spCleanDriveTimer = 0;      // seconds since last mistake
+    let spHighSpeedTimer = 0;       // seconds continuously above 300 km/h
+    let spTunnelZone = false;       // whether player is in a tunnel segment
+    let spPressureIndicator = 0;    // 0-1: how hard opponent is pressuring us
+    let rivalSpPressureTimer = 0;   // timer for rival drafting drain
+    let rivalLastKnownSP = 100;
+    let playerLastKnownSP = 100;
+    // AI SP strategy — shifts when rival SP is low
+    let rivalInDefenseMode = false;
+
     const engineBoost = PERFORMANCE_PARTS.engine.find((p) => p.level === carConfig.engine)?.boost || 0;
     const turboAccel = PERFORMANCE_PARTS.turbo.find((p) => p.level === carConfig.turbo)?.accel || 0;
     const tireGrip = PERFORMANCE_PARTS.tires.find((p) => p.level === carConfig.tires)?.grip || 0;
@@ -312,6 +328,15 @@ export const RacingGame: React.FC<RacingGameProps> = ({
     const decel = -maxSpeed / 4;
     const offRoadDecel = -maxSpeed / 1.5;
     const offRoadLimit = maxSpeed / 3;
+
+    // SP-Battle tuning constants
+    const SP_DRAIN_BASE = 0.2;           // per second when being pressured
+    const SP_DISTANCE_THRESHOLD = 2500;  // world units where pressure starts
+    const SP_BREAKAWAY_THRESHOLD = 6000; // world units — heavy drain
+    const SP_DRAFT_DRAIN = 0.3;          // per second when rival is drafting us
+    const SP_DRAFT_GAIN = 0.1;           // per second when we draft rival
+    const SP_REGEN_CLEAN = 2;            // SP gained every 20s of clean driving
+    const SP_REGEN_INTERVAL = 20;        // seconds between clean-drive regen
 
     /**
      * Generates a random license plate string.
@@ -794,11 +819,29 @@ export const RacingGame: React.FC<RacingGameProps> = ({
         driftScore += driftIntensity * dt * 100;
         totalDriftScore += driftIntensity * dt * 100;
       } else if (driftScore > 0) {
-        // Apply drift score to money/SP or just reset
         if (mode === 'tokyo-expressway') {
-          playerSP = Math.min(100, playerSP + driftScore / 1000);
+          // Perfect drift: playerSP gain + rivalSP penalty
+          const driftReward = Math.min(driftScore / 800, 3);
+          playerSP = Math.min(100, playerSP + driftReward);
+          rivalSP = Math.max(0, rivalSP - driftReward * 0.5);
+          if (driftReward > 1) {
+            spCleanDriveTimer = Math.max(spCleanDriveTimer, 5); // don't penalize clean timer for drifting
+          }
         }
         driftScore = 0;
+      }
+
+      // Clean overtake detection (player passes rival for SP bonus)
+      if (mode === 'tokyo-expressway' && opponents.length > 0) {
+        const rival = opponents[0];
+        const prevDist = rivalDistance;
+        const nowDist = (position + (lap - 1) * trackLength) - (rival.z + (rival.lap - 1) * trackLength);
+        if (prevDist < 0 && nowDist > 0) {
+          // Player just overtook rival cleanly
+          playerSP = Math.min(100, playerSP + 2);
+          rivalSP = Math.max(0, rivalSP - 5);
+          spCleanDriveTimer = 0;
+        }
       }
 
       // Particles & Audio
@@ -863,6 +906,13 @@ export const RacingGame: React.FC<RacingGameProps> = ({
       if ((playerX < -1) || (playerX > 1)) {
         if (speed > offRoadLimit) speed += offRoadDecel * dt;
         if (speed > offRoadLimit * 2) damage = Math.min(100, damage + dt * 5 * DIFFICULTY_PRESETS[difficulty].damageMultiplier);
+        // SP mistake: wall/off-road
+        if (mode === 'tokyo-expressway' && speed > offRoadLimit) {
+          const penalty = playerX < -1.5 || playerX > 1.5 ? 8 : 3;
+          playerSP = Math.max(0, playerSP - penalty * dt * 2);
+          spMistakeFlash = 0.4;
+          spCleanDriveTimer = 0;
+        }
       }
 
       playerX = Math.max(-2, Math.min(2, playerX));
@@ -982,11 +1032,15 @@ export const RacingGame: React.FC<RacingGameProps> = ({
         // Rubberbanding for Tokyo Expressway to keep the race tight
         if (mode === 'tokyo-expressway' && !opp.isPolice) {
           if (zDiff > 2000) {
-            // Rival is far ahead, slow down slightly
-            targetSpeed *= 0.9;
+            // Rival is far ahead — slow down to keep battle tight
+            targetSpeed *= rivalInDefenseMode ? 0.85 : 0.9;
           } else if (zDiff < -2000) {
-            // Rival is far behind, speed up
-            targetSpeed *= 1.15;
+            // Rival is behind — chase hard
+            targetSpeed *= rivalInDefenseMode ? 1.05 : 1.15;
+          }
+          // Defense mode: rival SP < 30, play it safe — avoid risky lines
+          if (rivalInDefenseMode) {
+            targetSpeed = Math.min(targetSpeed, maxSpeed * 0.9);
           }
         }
 
@@ -1011,24 +1065,33 @@ export const RacingGame: React.FC<RacingGameProps> = ({
           }
         }
 
-        // Aggressive Overtaking for Tokyo Expressway
-        if (mode === 'tokyo-expressway' && Math.abs(zDiff) < 4000 && Math.abs(opp.offset - playerX) < 0.8) {
-          if (opp.isPolice) {
-            desiredOffset = playerX; // Police tries to ram or block
-          } else {
-            if (zDiff < 0 && speed > opp.speed) { // Player is ahead and faster
-              // Try to block or maintain position
+        // Aggressive Overtaking / Pressure Strategy for Tokyo Expressway
+        if (mode === 'tokyo-expressway' && !opp.isPolice) {
+          if (rivalInDefenseMode) {
+            // Defense: clean lines, avoid player, maintain safe gap
+            if (Math.abs(opp.offset - playerX) < 0.5) {
+              desiredOffset = playerX > 0 ? -0.6 : 0.6;
+            }
+          } else if (Math.abs(zDiff) < 4000 && Math.abs(opp.offset - playerX) < 0.8) {
+            if (zDiff < 0 && speed > opp.speed) {
+              // Player ahead — rival blocks merge lane
               desiredOffset = playerX + (playerX > 0 ? -0.5 : 0.5);
-            } else if (zDiff > 0 && opp.speed > speed) { // Opponent is ahead and faster
-              // Try to slipstream and overtake
+            } else if (zDiff > 0 && opp.speed > speed) {
+              // Rival ahead — tail-gate to apply draft pressure
               desiredOffset = playerX;
-              opp.speed += (500 + level * 100) * dt; // Aggressive acceleration
+              opp.speed += (500 + level * 100) * dt;
               if (Math.abs(opp.offset - playerX) < 0.3) {
                 isSlipstreaming = true;
-                opp.speed += 1500 * dt; // Extra boost when close
+                opp.speed += 1500 * dt;
+                // Rival drafting player drains player SP (handled in updateHUD)
               }
+            } else if (zDiff < -500 && zDiff > -4000) {
+              // Rival close behind: hold inside lane to deny clean overtake
+              desiredOffset = Math.sign(playerX) * 0.4;
             }
           }
+        } else if (mode === 'tokyo-expressway' && opp.isPolice) {
+          desiredOffset = playerX; // Police always tracks player
         }
 
         // Police Busted Logic
@@ -1098,6 +1161,14 @@ export const RacingGame: React.FC<RacingGameProps> = ({
       audioManager.playCollision(impact / 10);
       screenShake = impact * 5;
 
+      // SP mistake penalty on collision
+      if (mode === 'tokyo-expressway') {
+        const spPenalty = impact > 8 ? 15 : impact > 4 ? 8 : 5;
+        playerSP = Math.max(0, playerSP - spPenalty);
+        spMistakeFlash = 0.6;
+        spCleanDriveTimer = 0;
+      }
+
       for (let i = 0; i < 15; i++) {
         sparkParticles.push({
           x: SCREEN_WIDTH / 2 + (Math.random() - 0.5) * 100,
@@ -1158,15 +1229,82 @@ export const RacingGame: React.FC<RacingGameProps> = ({
         const playerTotalDist = position + (lap - 1) * trackLength;
         const rivalTotalDist = rival.z + (rival.lap - 1) * trackLength;
         rivalDistance = playerTotalDist - rivalTotalDist;
-        
-        // Drain SP based on distance (drain rate increases with distance)
-        const drainRate = Math.max(0, (Math.abs(rivalDistance) - 2000) / 50000);
-        
-        if (rivalDistance > 2000) {
-          rivalSP = Math.max(0, rivalSP - drainRate);
-        } else if (rivalDistance < -2000) {
-          playerSP = Math.max(0, playerSP - drainRate);
+
+        // --- Determine pressure zone multiplier ---
+        const dt = (Date.now() - startTime) * 0.001; // reuse approximate dt
+        const playerSegNow = findSegment(position);
+        // Tunnel detection: use road color darkness as proxy (neon_city / cyber_industrial theme tunnels)
+        // Mark segments as tunnel when they are deep sections; approximate via absolute Z distance from origin
+        const segIndex = Math.floor(position / SEGMENT_LENGTH) % segments.length;
+        const tunnelApprox = segIndex % 400 < 80 || (segIndex % 400 > 200 && segIndex % 400 < 260);
+        spTunnelZone = tunnelApprox;
+
+        let pressureMultiplier = 1.0;
+        const absGap = Math.abs(rivalDistance);
+        if (spTunnelZone) pressureMultiplier *= 1.5;
+        if (Math.abs(rival.offset - playerX) < 0.4) pressureMultiplier *= 1.3; // narrow lane
+        // +0.5 slightly ahead, +1.0 pulling away, +2.0 breakaway, +3.0 breakaway + tunnel
+        if (absGap > SP_BREAKAWAY_THRESHOLD) {
+          pressureMultiplier *= 2.0 + (spTunnelZone ? 1.0 : 0);
+        } else if (absGap > SP_DISTANCE_THRESHOLD) {
+          pressureMultiplier *= 1.0 + (absGap - SP_DISTANCE_THRESHOLD) / (SP_BREAKAWAY_THRESHOLD - SP_DISTANCE_THRESHOLD);
         }
+
+        // --- Distance pressure drain ---
+        if (rivalDistance < -SP_DISTANCE_THRESHOLD) {
+          // rival is ahead — player losing SP
+          playerSP = Math.max(0, playerSP - SP_DRAIN_BASE * pressureMultiplier * (1 / 60));
+        } else if (rivalDistance > SP_DISTANCE_THRESHOLD) {
+          // player is ahead — rival losing SP
+          rivalSP = Math.max(0, rivalSP - SP_DRAIN_BASE * pressureMultiplier * (1 / 60));
+        }
+
+        // --- Rival drafting player: rival is close behind, draining player SP ---
+        if (rivalDistance < 0 && rivalDistance > -4000 && Math.abs(rival.offset - playerX) < 0.35) {
+          rivalSpPressureTimer += 1 / 60;
+          if (rivalSpPressureTimer > 0.5) {
+            playerSP = Math.max(0, playerSP - SP_DRAFT_DRAIN * (1 / 60));
+            spPressureIndicator = Math.min(1, spPressureIndicator + 0.05);
+          }
+        } else {
+          rivalSpPressureTimer = 0;
+          spPressureIndicator = Math.max(0, spPressureIndicator - 0.02);
+        }
+
+        // --- Player drafting rival: we are close behind, gaining SP ---
+        if (rivalDistance > 500 && rivalDistance < 4000 && Math.abs(rival.offset - playerX) < 0.35) {
+          playerSP = Math.min(100, playerSP + SP_DRAFT_GAIN * (1 / 60));
+        }
+
+        // --- Rival skill actions drain player SP ---
+        if (rival.speed > 26000 && rival.speed > speed + 1000) {
+          // rival holding >260 km/h faster than us
+          playerSP = Math.max(0, playerSP - 4 * (1 / 60));
+        }
+        spHighSpeedTimer = speed > 30000 ? spHighSpeedTimer + (1 / 60) : 0;
+        if (spHighSpeedTimer >= 5) {
+          // player sustained >300 km/h for 5s
+          playerSP = Math.min(100, playerSP + 1 * (1 / 60));
+          rivalSP = Math.max(0, rivalSP - 1 * (1 / 60));
+        }
+
+        // --- Clean drive regen ---
+        spCleanDriveTimer += 1 / 60;
+        if (spCleanDriveTimer >= SP_REGEN_INTERVAL) {
+          playerSP = Math.min(100, playerSP + SP_REGEN_CLEAN);
+          spCleanDriveTimer = 0;
+        }
+
+        // --- Distance KO: 60m gap held for 3s triggers instant loss ---
+        if (absGap > 60 * 200) { // 60 segments * SEGMENT_LENGTH
+          // handled by existing breakaway drain — SP will hit 0 naturally
+        }
+
+        // Flash decay
+        if (spMistakeFlash > 0) spMistakeFlash -= 1 / 60;
+
+        // --- AI SP defense mode ---
+        rivalInDefenseMode = rivalSP < 30;
 
         if (playerSP <= 0 || rivalSP <= 0) {
           finished = true;
@@ -1174,7 +1312,7 @@ export const RacingGame: React.FC<RacingGameProps> = ({
           onRaceEnd(
             playerSP > 0 ? 1 : 2,
             Date.now() - startTime,
-            undefined,
+            Math.floor(totalDriftScore),
             opponents.map((o) => o.model)
           );
           return;
@@ -1201,7 +1339,11 @@ export const RacingGame: React.FC<RacingGameProps> = ({
         rivalDistance,
         driftScore,
         bustTimer,
-        isBusted
+        isBusted,
+        spMistakeFlash: spMistakeFlash > 0,
+        spPressureIndicator,
+        spTunnelZone,
+        spHighSpeed: spHighSpeedTimer >= 3
       }));
     };
 
@@ -2044,34 +2186,85 @@ export const RacingGame: React.FC<RacingGameProps> = ({
 
             {/* Tokyo Expressway SP Meters */}
             {mode === 'tokyo-expressway' && (
-              <div className="absolute top-6 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 w-[500px]">
-                <div className="flex justify-between w-full text-sm font-black italic uppercase tracking-widest text-white drop-shadow-md">
-                  <span className={hud.playerSP < 30 ? 'text-red-500 animate-pulse' : 'text-blue-400'}>Player SP: {Math.ceil(hud.playerSP)}</span>
-                  <span className="text-yellow-400">Distance: {Math.abs(Math.floor(hud.rivalDistance))}m</span>
-                  <span className={hud.rivalSP < 30 ? 'text-red-500 animate-pulse' : 'text-red-400'}>Rival SP: {Math.ceil(hud.rivalSP)}</span>
-                </div>
-                <div className="flex w-full h-6 bg-black/60 border-2 border-white/20 rounded-full overflow-hidden relative">
-                  {/* Player SP Bar (Left to Right) */}
-                  <div className="w-1/2 h-full border-r border-white/20 flex justify-end">
-                    <div 
-                      className="h-full bg-blue-500 transition-all duration-200"
-                      style={{ width: `${hud.playerSP}%` }}
-                    />
+              <div className="absolute top-4 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1.5 w-[560px] pointer-events-none">
+                {/* SP Labels row */}
+                <div className="flex justify-between w-full px-1">
+                  <div className="flex items-center gap-2">
+                    <span className={`text-xs font-black italic uppercase tracking-widest transition-colors ${hud.playerSP < 30 ? 'text-red-400 animate-pulse' : hud.playerSP < 70 ? 'text-yellow-400' : 'text-blue-400'}`}>
+                      YOU
+                    </span>
+                    <span className={`text-2xl font-black italic tabular-nums transition-colors ${hud.playerSP < 30 ? 'text-red-400 animate-pulse' : hud.playerSP < 70 ? 'text-yellow-400' : 'text-blue-400'}`}>
+                      {Math.ceil(hud.playerSP)}
+                    </span>
                   </div>
-                  {/* Rival SP Bar (Left to Right) */}
-                  <div className="w-1/2 h-full">
-                    <div 
-                      className="h-full bg-red-500 transition-all duration-200"
-                      style={{ width: `${hud.rivalSP}%` }}
-                    />
+                  <div className="flex flex-col items-center">
+                    <span className="text-[9px] font-mono text-white/50 uppercase tracking-[0.2em]">SP BATTLE</span>
+                    <span className={`text-[10px] font-bold uppercase tracking-wider ${hud.spTunnelZone ? 'text-orange-400 animate-pulse' : hud.spHighSpeed ? 'text-cyan-400' : 'text-white/40'}`}>
+                      {hud.spTunnelZone ? 'TUNNEL ×1.5' : hud.spHighSpeed ? '300+ KM/H' : `${Math.abs(Math.floor((hud.rivalDistance || 0) / 200))}m GAP`}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className={`text-2xl font-black italic tabular-nums transition-colors ${hud.rivalSP < 30 ? 'text-red-400 animate-pulse' : hud.rivalSP < 70 ? 'text-yellow-400' : 'text-red-400'}`}>
+                      {Math.ceil(hud.rivalSP)}
+                    </span>
+                    <span className={`text-xs font-black italic uppercase tracking-widest transition-colors ${hud.rivalSP < 30 ? 'text-red-400 animate-pulse' : hud.rivalSP < 70 ? 'text-yellow-400' : 'text-red-400'}`}>
+                      RIVAL
+                    </span>
                   </div>
                 </div>
-                <div className="text-[10px] font-mono text-white/60 uppercase tracking-widest mt-1 flex gap-4">
-                  <span>{hud.rivalDistance > 2000 ? 'Player Ahead - Draining Rival SP' : hud.rivalDistance < -2000 ? 'Rival Ahead - Draining Player SP' : 'Maintain Lead to Drain SP'}</span>
+
+                {/* SP Bar — tug-of-war style */}
+                <div className={`flex w-full h-5 rounded-sm overflow-hidden border-2 transition-all ${hud.spMistakeFlash ? 'border-red-500 shadow-[0_0_12px_#ef4444]' : hud.spTunnelZone ? 'border-orange-500/60' : 'border-white/20'}`}>
+                  {/* Player SP: grows from left */}
+                  <div
+                    className={`h-full transition-all duration-150 ${hud.playerSP < 30 ? 'bg-red-500' : hud.playerSP < 70 ? 'bg-yellow-400' : 'bg-blue-500'} ${hud.playerSP < 30 ? 'shadow-[inset_0_0_8px_rgba(0,0,0,0.4)]' : ''}`}
+                    style={{ width: `${hud.playerSP / 2}%` }}
+                  />
+                  {/* Center gap / neutral zone */}
+                  <div className="flex-1 bg-black/70 relative flex items-center justify-center">
+                    <div className="w-px h-full bg-white/30" />
+                    {/* Pressure indicator arrows */}
+                    {(hud.spPressureIndicator || 0) > 0.2 && (
+                      <div
+                        className="absolute flex items-center gap-0.5 text-red-400"
+                        style={{ opacity: Math.min(1, (hud.spPressureIndicator || 0) * 2) }}
+                      >
+                        <span className="text-[8px] font-black">▶▶▶</span>
+                      </div>
+                    )}
+                  </div>
+                  {/* Rival SP: grows from right */}
+                  <div
+                    className={`h-full transition-all duration-150 ${hud.rivalSP < 30 ? 'bg-red-500' : hud.rivalSP < 70 ? 'bg-yellow-400' : 'bg-red-500'}`}
+                    style={{ width: `${hud.rivalSP / 2}%` }}
+                  />
+                </div>
+
+                {/* Status row */}
+                <div className="flex w-full justify-between px-1 text-[9px] font-mono uppercase tracking-widest">
+                  <span className={`transition-colors ${(hud.rivalDistance || 0) > 0 ? 'text-blue-400' : 'text-white/30'}`}>
+                    {(hud.rivalDistance || 0) > 2500 ? 'Draining Rival SP' : 'Hold Lead'}
+                  </span>
                   {hud.bustTimer > 0 && (
-                    <span className="text-red-500 font-black animate-pulse">POLICE NEARBY! BUSTED IN: {(3 - hud.bustTimer).toFixed(1)}s</span>
+                    <span className="text-red-400 font-black animate-pulse">
+                      POLICE! BUST IN {Math.max(0, 3 - hud.bustTimer).toFixed(1)}s
+                    </span>
                   )}
+                  <span className={`transition-colors ${(hud.rivalDistance || 0) < 0 ? 'text-red-400' : 'text-white/30'}`}>
+                    {(hud.rivalDistance || 0) < -2500 ? 'SP Draining' : 'Stay Ahead'}
+                  </span>
                 </div>
+
+                {/* Pressure incoming arrows (below bar, animated) */}
+                {(hud.spPressureIndicator || 0) > 0.4 && (
+                  <motion.div
+                    animate={{ x: [0, -4, 0] }}
+                    transition={{ repeat: Infinity, duration: 0.4 }}
+                    className="self-start flex items-center gap-1 text-red-400 text-[10px] font-black"
+                  >
+                    <span>◀◀ PRESSURE</span>
+                  </motion.div>
+                )}
               </div>
             )}
 
@@ -2512,6 +2705,21 @@ export const RacingGame: React.FC<RacingGameProps> = ({
 
       {/* Retro Scanlines */}
       <div className="absolute inset-0 pointer-events-none opacity-[0.05] bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%)] bg-[size:100%_4px]"></div>
+
+      {/* SP Mistake Flash */}
+      {mode === 'tokyo-expressway' && hud.spMistakeFlash && (
+        <div className="absolute inset-0 pointer-events-none border-4 border-red-500/70 animate-pulse" />
+      )}
+
+      {/* Tunnel Compression FX */}
+      {mode === 'tokyo-expressway' && hud.spTunnelZone && (
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_40%,rgba(0,0,0,0.55)_100%)]" />
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 text-[9px] font-black text-orange-400/70 uppercase tracking-[0.3em] mt-1 pointer-events-none">
+            TUNNEL
+          </div>
+        </div>
+      )}
     </div>
   );
 };
