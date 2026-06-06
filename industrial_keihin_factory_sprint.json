@@ -1,0 +1,109 @@
+{
+  "track_name": "Keihin Industrial: Night Factory Sprint",
+  "style": "INDUSTRIAL SECTOR ARCHITECT",
+  "difficulty": "Intermediate",
+  "setting": "Night Time",
+  "course_type": "Industrial Zone Circuit",
+  "layout": {
+    "nodes": [
+      "start_gate_keihin",
+      "straight_dock_approach",
+      "sweeper_container_yard",
+      "straight_refinery_pass",
+      "hairpin_warehouse_a",
+      "straight_conveyor_alley",
+      "chicane_pipe_crossing",
+      "straight_tank_farm",
+      "sweeper_crane_zone",
+      "straight_loading_bay",
+      "hairpin_warehouse_b",
+      "straight_final_dock",
+      "finish_keihin"
+    ],
+    "curves": [
+      {"id": "sweeper_container_yard", "angle": 80, "radius": 160, "banking": "flat", "surface": "asphalt_coarse"},
+      {"id": "hairpin_warehouse_a", "angle": 175, "radius": 40, "banking": "flat", "surface": "asphalt_grip_med"},
+      {"id": "chicane_pipe_crossing", "angle": 45, "radius": 55, "banking": "flat", "surface": "asphalt_grip_low"},
+      {"id": "sweeper_crane_zone", "angle": 100, "radius": 200, "banking": "slight_right", "surface": "asphalt_coarse"},
+      {"id": "hairpin_warehouse_b", "angle": 170, "radius": 45, "banking": "flat", "surface": "asphalt_grip_med"}
+    ],
+    "straights": [
+      {"id": "straight_dock_approach", "length": 480, "width": 14, "lanes": 3},
+      {"id": "straight_refinery_pass", "length": 320, "width": 12, "lanes": 2},
+      {"id": "straight_conveyor_alley", "length": 280, "width": 10, "lanes": 2},
+      {"id": "straight_tank_farm", "length": 360, "width": 12, "lanes": 2},
+      {"id": "straight_loading_bay", "length": 300, "width": 14, "lanes": 3},
+      {"id": "straight_final_dock", "length": 420, "width": 14, "lanes": 3}
+    ],
+    "boost_zones": [
+      {"at": "exit_sweeper_container_yard", "length": 120, "gain": "medium"},
+      {"at": "exit_hairpin_warehouse_a", "length": 80, "gain": "medium"},
+      {"at": "exit_chicane_pipe_crossing", "length": 70, "gain": "low"},
+      {"at": "exit_sweeper_crane_zone", "length": 100, "gain": "high"},
+      {"at": "exit_hairpin_warehouse_b", "length": 80, "gain": "medium"},
+      {"at": "straight_final_dock_mid", "length": 150, "gain": "high"}
+    ],
+    "hazards": [
+      {"type": "oil_slick", "zones": ["chicane_pipe_crossing", "straight_conveyor_alley_entry"], "grip_reduction": "35%"},
+      {"type": "industrial_debris", "zones": ["straight_refinery_pass_edge"], "collision_penalty": -4},
+      {"type": "low_clearance_pipe", "zones": ["chicane_pipe_crossing_center"], "visual_only": true},
+      {"type": "gravel_exit", "zones": ["hairpin_warehouse_a_exit", "hairpin_warehouse_b_exit"], "speed_penalty": "25%"},
+      {"type": "spot_lighting_gap", "zones": ["straight_tank_farm_mid"], "visibility_reduction": "30%"}
+    ],
+    "elevation": [
+      {"segment": "straight_dock_approach", "change": "+2m", "gradient": "1.5%"},
+      {"segment": "sweeper_container_yard_to_hairpin_a", "change": "+4m", "gradient": "3%"},
+      {"segment": "hairpin_a_to_pipe_crossing", "change": "-3m", "gradient": "-2%"},
+      {"segment": "crane_zone_to_loading_bay", "change": "+2m", "gradient": "1.5%"},
+      {"segment": "hairpin_b_to_finish", "change": "-2m", "gradient": "-1.5%"}
+    ]
+  },
+  "flow_notes": {
+    "drift_initiation": [
+      "sweeper_container_yard_entry",
+      "hairpin_warehouse_a_entry",
+      "chicane_pipe_crossing_entry",
+      "sweeper_crane_zone_entry",
+      "hairpin_warehouse_b_entry"
+    ],
+    "braking_points": [
+      "hairpin_warehouse_a_brake_marker",
+      "chicane_pipe_crossing_brake_marker",
+      "hairpin_warehouse_b_brake_marker"
+    ],
+    "weight_transfer_zones": [
+      "exit_sweeper_container_yard",
+      "exit_hairpin_warehouse_a",
+      "exit_sweeper_crane_zone"
+    ],
+    "optimal_lines": {
+      "sweeper_container_yard": "outside_in_outside_carry_into_refinery",
+      "hairpin_warehouse_a": "late_apex_tight_exit_straight_setup",
+      "chicane_pipe_crossing": "smooth_rhythm_avoid_oil_center",
+      "sweeper_crane_zone": "wide_arc_carry_momentum_to_loading_bay",
+      "hairpin_warehouse_b": "wide_entry_tight_apex_max_exit_speed"
+    },
+    "industrial_specific": {
+      "oil_avoidance": "stay_left_through_pipe_crossing",
+      "wide_straight_strategy": "slipstream_to_dock_approach_then_brake_late",
+      "hairpin_rhythm": "both_hairpins_same_late_apex_technique"
+    }
+  },
+  "mobile_optimization": {
+    "lod_distances": {"near": 40, "mid": 150, "far": 400},
+    "texture_res": "512x512",
+    "poly_count_target": 12000,
+    "lighting_baked": true,
+    "shadow_casters": "limited_to_player_and_key_objects",
+    "industrial_props": "low_poly_silhouettes",
+    "particle_effects": "spark_and_smoke_capped_at_12"
+  },
+  "visual_identity": {
+    "lighting": "industrial_flood_lights_high_contrast_shadows",
+    "signage": "safety_yellow_industrial_warnings",
+    "barriers": "steel_crash_barriers_rust_weathering",
+    "environment": "dockyard_refinery_containers_cranes",
+    "atmosphere": "overcast_night_mist_from_water",
+    "color_palette": ["#0d0d0d", "#1a1a1a", "#2e2e2e", "#f0a500", "#c0c0c0"]
+  }
+}

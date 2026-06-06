@@ -1,0 +1,118 @@
+{
+  "track_name": "Shinjuku Grid: Pro Circuit",
+  "style": "STREET TECHNICAL ARCHITECT",
+  "difficulty": "Intermediate",
+  "setting": "Night Time",
+  "course_type": "Urban Street Circuit",
+  "layout": {
+    "nodes": [
+      "start_kabukicho",
+      "straight_yasukuni_north",
+      "corner_meiji_east",
+      "straight_meiji_dori",
+      "sweeper_okubo_bend",
+      "straight_shinjuku_station_pass",
+      "hairpin_takashimaya",
+      "straight_south_loop",
+      "corner_koshu_kaido",
+      "straight_koshu_run",
+      "chicane_underpass_shuto",
+      "straight_return_north",
+      "corner_okubo_return",
+      "straight_finish_run",
+      "finish_kabukicho"
+    ],
+    "curves": [
+      {"id": "corner_meiji_east", "angle": 90, "radius": 45, "banking": "flat", "surface": "asphalt_grip_med"},
+      {"id": "sweeper_okubo_bend", "angle": 80, "radius": 120, "banking": "flat", "surface": "asphalt_grip_high"},
+      {"id": "hairpin_takashimaya", "angle": 175, "radius": 38, "banking": "flat", "surface": "asphalt_grip_med"},
+      {"id": "corner_koshu_kaido", "angle": 90, "radius": 50, "banking": "slight_left", "surface": "asphalt_grip_med"},
+      {"id": "chicane_underpass_shuto", "angle": 55, "radius": 65, "banking": "flat", "surface": "asphalt_grip_low"},
+      {"id": "corner_okubo_return", "angle": 85, "radius": 48, "banking": "flat", "surface": "asphalt_grip_med"}
+    ],
+    "straights": [
+      {"id": "straight_yasukuni_north", "length": 380, "width": 11, "lanes": 3},
+      {"id": "straight_meiji_dori", "length": 420, "width": 11, "lanes": 3},
+      {"id": "straight_shinjuku_station_pass", "length": 300, "width": 10, "lanes": 2},
+      {"id": "straight_south_loop", "length": 350, "width": 10, "lanes": 2},
+      {"id": "straight_koshu_run", "length": 460, "width": 12, "lanes": 3},
+      {"id": "straight_return_north", "length": 390, "width": 11, "lanes": 3},
+      {"id": "straight_finish_run", "length": 300, "width": 12, "lanes": 3}
+    ],
+    "boost_zones": [
+      {"at": "exit_corner_meiji_east", "length": 90, "gain": "medium"},
+      {"at": "exit_sweeper_okubo", "length": 80, "gain": "high"},
+      {"at": "exit_hairpin_takashimaya", "length": 100, "gain": "medium"},
+      {"at": "straight_koshu_run_mid", "length": 130, "gain": "high"},
+      {"at": "exit_chicane_underpass", "length": 80, "gain": "medium"},
+      {"at": "straight_finish_run_entry", "length": 100, "gain": "high"}
+    ],
+    "hazards": [
+      {"type": "tramline_rails", "zones": ["straight_meiji_dori"], "grip_reduction": "20%"},
+      {"type": "curb_contact", "zones": ["corner_meiji_east", "hairpin_takashimaya", "corner_okubo_return"], "penalty_on_contact": -3},
+      {"type": "tunnel_ceiling_low", "zones": ["chicane_underpass_shuto"], "visibility_reduction": "35%"},
+      {"type": "manhole_covers", "zones": ["straight_shinjuku_station_pass_center"], "grip_reduction": "15%"},
+      {"type": "parked_cars_visual", "zones": ["straight_south_loop_right"], "no_collision": true},
+      {"type": "pedestrian_crossing_remnant", "zones": ["corner_koshu_kaido"], "grip_reduction": "10%"}
+    ],
+    "elevation": [
+      {"segment": "yasukuni_to_meiji", "change": "+2m", "gradient": "1.5%"},
+      {"segment": "sweeper_okubo", "change": "-1m", "gradient": "-1%"},
+      {"segment": "takashimaya_to_koshu", "change": "-3m", "gradient": "-2%"},
+      {"segment": "koshu_run", "change": "0m", "gradient": "flat"},
+      {"segment": "underpass_shuto", "change": "-4m", "gradient": "-3%"},
+      {"segment": "return_to_finish", "change": "+4m", "gradient": "2%"}
+    ]
+  },
+  "flow_notes": {
+    "drift_initiation": [
+      "corner_meiji_east_entry",
+      "sweeper_okubo_bend_entry",
+      "hairpin_takashimaya_entry",
+      "corner_okubo_return_entry"
+    ],
+    "braking_points": [
+      "corner_meiji_east_brake_60m",
+      "hairpin_takashimaya_brake_70m",
+      "corner_koshu_kaido_brake_55m",
+      "chicane_underpass_brake_80m"
+    ],
+    "weight_transfer_zones": [
+      "exit_corner_meiji_east",
+      "exit_sweeper_okubo",
+      "exit_hairpin_takashimaya",
+      "exit_chicane_underpass"
+    ],
+    "optimal_lines": {
+      "corner_meiji_east": "standard_late_apex_set_for_meiji_dori",
+      "sweeper_okubo_bend": "full_throttle_wide_arc_no_lift",
+      "hairpin_takashimaya": "wide_entry_clamp_apex_strong_exit",
+      "corner_koshu_kaido": "smooth_transition_avoid_tramlines_left",
+      "chicane_underpass_shuto": "minimize_direction_change_carry_momentum",
+      "corner_okubo_return": "early_apex_set_for_finish_straight"
+    },
+    "intermediate_notes": {
+      "rhythm_section": "meiji_dori_to_takashimaya_three_corner_sequence",
+      "decision_point": "underpass_chicane_brake_late_or_carry_speed",
+      "risk_reward": "tramlines_on_meiji_are_fastest_line_but_risky"
+    }
+  },
+  "mobile_optimization": {
+    "lod_distances": {"near": 35, "mid": 140, "far": 380},
+    "texture_res": "512x512",
+    "poly_count_target": 13000,
+    "lighting_baked": true,
+    "shadow_casters": "limited_to_player_and_opponents",
+    "building_facades": "flat_texture_no_geometry",
+    "prop_count_minimized": true,
+    "billboard_crowds": true
+  },
+  "visual_identity": {
+    "lighting": "mixed_sodium_and_led_city_lights_high_density",
+    "signage": "jdm_shop_fronts_izakaya_vending_machines",
+    "barriers": "jersey_barrier_with_orange_cones",
+    "environment": "shinjuku_urban_density_high_rise_pachinko",
+    "atmosphere": "clear_dry_night_light_haze",
+    "color_palette": ["#0a0a0a", "#1a1a2e", "#cc0000", "#ff9900", "#ffffff"]
+  }
+}

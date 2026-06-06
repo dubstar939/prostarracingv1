@@ -1,0 +1,111 @@
+{
+  "track_name": "Hakone Turnpike: Expert Climb",
+  "style": "MOUNTAIN PASS ENGINEER",
+  "difficulty": "Expert",
+  "setting": "Dusk",
+  "course_type": "Touge Uphill",
+  "layout": {
+    "nodes": [
+      "start_odawara_base",
+      "straight_entry_valley",
+      "hairpin_valley_1",
+      "straight_forest_climb_1",
+      "sweeper_cedar_bank",
+      "straight_forest_climb_2",
+      "hairpin_valley_2",
+      "straight_ridge_approach",
+      "chicane_ridge_top",
+      "straight_summit_run",
+      "hairpin_summit",
+      "straight_final_assault",
+      "finish_turnpike_top"
+    ],
+    "curves": [
+      {"id": "hairpin_valley_1", "angle": 180, "radius": 38, "banking": "flat", "surface": "asphalt_grip_low"},
+      {"id": "sweeper_cedar_bank", "angle": 110, "radius": 140, "banking": "slight_inside", "surface": "asphalt_grip_med"},
+      {"id": "hairpin_valley_2", "angle": 175, "radius": 42, "banking": "flat", "surface": "asphalt_grip_low"},
+      {"id": "chicane_ridge_top", "angle": 50, "radius": 60, "banking": "flat", "surface": "asphalt_grip_med"},
+      {"id": "hairpin_summit", "angle": 180, "radius": 35, "banking": "slight_outside", "surface": "asphalt_grip_low"}
+    ],
+    "straights": [
+      {"id": "straight_entry_valley", "length": 360, "width": 7, "lanes": 2},
+      {"id": "straight_forest_climb_1", "length": 240, "width": 6, "lanes": 2},
+      {"id": "straight_forest_climb_2", "length": 280, "width": 6, "lanes": 2},
+      {"id": "straight_ridge_approach", "length": 320, "width": 7, "lanes": 2},
+      {"id": "straight_summit_run", "length": 200, "width": 6, "lanes": 2},
+      {"id": "straight_final_assault", "length": 260, "width": 7, "lanes": 2}
+    ],
+    "boost_zones": [
+      {"at": "exit_hairpin_valley_1", "length": 70, "gain": "medium"},
+      {"at": "exit_sweeper_cedar_bank", "length": 90, "gain": "high"},
+      {"at": "exit_hairpin_valley_2", "length": 70, "gain": "medium"},
+      {"at": "exit_chicane_ridge_top", "length": 80, "gain": "medium"},
+      {"at": "exit_hairpin_summit", "length": 60, "gain": "high"}
+    ],
+    "hazards": [
+      {"type": "guardrail_proximity", "zones": ["hairpin_valley_1", "hairpin_valley_2", "hairpin_summit"], "penalty_on_contact": -6},
+      {"type": "off_line_gravel", "zones": ["hairpin_valley_1_exit", "hairpin_valley_2_exit", "hairpin_summit_exit"], "speed_penalty": "35%"},
+      {"type": "dusk_shadow_patches", "zones": ["straight_forest_climb_1", "straight_forest_climb_2"], "visibility_reduction": "25%"},
+      {"type": "apex_camber_change", "zones": ["chicane_ridge_top"], "handling_note": "negative_camber_on_left_increases_understeer"},
+      {"type": "summit_wind", "zones": ["straight_summit_run", "hairpin_summit"], "handling_reduction": "12%"}
+    ],
+    "elevation": [
+      {"segment": "start_to_hairpin_1", "change": "+28m", "gradient": "9%"},
+      {"segment": "hairpin_1_to_cedar_bank", "change": "+35m", "gradient": "11%"},
+      {"segment": "cedar_bank_to_hairpin_2", "change": "+22m", "gradient": "8%"},
+      {"segment": "hairpin_2_to_ridge_approach", "change": "+40m", "gradient": "13%"},
+      {"segment": "ridge_to_summit", "change": "+30m", "gradient": "10%"},
+      {"segment": "summit_hairpin_to_finish", "change": "+18m", "gradient": "7%"}
+    ]
+  },
+  "flow_notes": {
+    "drift_initiation": [
+      "hairpin_valley_1_entry",
+      "sweeper_cedar_bank_entry",
+      "hairpin_valley_2_entry",
+      "hairpin_summit_entry"
+    ],
+    "braking_points": [
+      "hairpin_valley_1_brake_50m",
+      "hairpin_valley_2_brake_50m",
+      "chicane_ridge_brake_70m",
+      "hairpin_summit_brake_60m"
+    ],
+    "weight_transfer_zones": [
+      "exit_hairpin_valley_1",
+      "cedar_bank_crest",
+      "exit_hairpin_valley_2",
+      "ridge_approach_crest"
+    ],
+    "optimal_lines": {
+      "hairpin_valley_1": "late_apex_grip_climb_do_not_run_wide",
+      "sweeper_cedar_bank": "inside_arc_use_camber_carry_speed",
+      "hairpin_valley_2": "trail_brake_entry_tight_exit_line",
+      "chicane_ridge_top": "minimize_steering_correction_wind_exposed",
+      "hairpin_summit": "controlled_entry_no_spin_on_loose_exit"
+    },
+    "uphill_physics": {
+      "acceleration_bias": "torque_heavy_low_end_for_climb",
+      "braking_behavior": "engine_brake_effective_on_hairpin_entry",
+      "weight_transfer": "rearward_bias_improves_traction_on_climb"
+    }
+  },
+  "mobile_optimization": {
+    "lod_distances": {"near": 30, "mid": 130, "far": 350},
+    "texture_res": "512x512",
+    "poly_count_target": 12500,
+    "lighting_baked": false,
+    "dynamic_sky": true,
+    "shadow_casters": "limited_to_player_and_key_barriers",
+    "foliage_simplified": true,
+    "tree_billboard_distance": 80
+  },
+  "visual_identity": {
+    "lighting": "dusk_warm_orange_directional_long_shadows",
+    "signage": "hairpin_warning_chevrons_reflective_white",
+    "barriers": "armco_silver_with_orange_delineators",
+    "environment": "dense_cedar_forest_mountain_ridge_skyline",
+    "atmosphere": "clear_dusk_cooling_air_misty_valley",
+    "color_palette": ["#1a0a00", "#2e1503", "#7a3b1e", "#e08030", "#c8d0b8"]
+  }
+}

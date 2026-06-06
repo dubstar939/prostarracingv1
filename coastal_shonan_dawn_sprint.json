@@ -1,0 +1,103 @@
+{
+  "track_name": "Shonan Coastal: Dawn Sprint",
+  "style": "COASTAL HIGHWAY CARTOGRAPHER",
+  "difficulty": "Beginner",
+  "setting": "Dawn",
+  "course_type": "Coastal Highway Sprint",
+  "layout": {
+    "nodes": [
+      "start_kamakura_toll",
+      "straight_coast_open",
+      "sweeper_enoshima_approach",
+      "straight_beachfront_north",
+      "sweeper_katase_bridge",
+      "straight_bridge_span",
+      "sweeper_fujisawa_exit",
+      "straight_coast_south",
+      "sweeper_chigasaki_bend",
+      "straight_final_run",
+      "finish_hiratsuka_pa"
+    ],
+    "curves": [
+      {"id": "sweeper_enoshima_approach", "angle": 40, "radius": 520, "banking": "slight_left", "surface": "asphalt"},
+      {"id": "sweeper_katase_bridge", "angle": 55, "radius": 440, "banking": "slight_right", "surface": "asphalt"},
+      {"id": "sweeper_fujisawa_exit", "angle": 60, "radius": 380, "banking": "flat", "surface": "asphalt"},
+      {"id": "sweeper_chigasaki_bend", "angle": 45, "radius": 480, "banking": "slight_left", "surface": "asphalt"}
+    ],
+    "straights": [
+      {"id": "straight_coast_open", "length": 1100, "width": 10, "lanes": 2},
+      {"id": "straight_beachfront_north", "length": 900, "width": 10, "lanes": 2},
+      {"id": "straight_bridge_span", "length": 640, "width": 8, "lanes": 2},
+      {"id": "straight_coast_south", "length": 1200, "width": 10, "lanes": 2},
+      {"id": "straight_final_run", "length": 1600, "width": 11, "lanes": 2}
+    ],
+    "boost_zones": [
+      {"at": "exit_sweeper_enoshima", "length": 140, "gain": "medium"},
+      {"at": "exit_sweeper_katase_bridge", "length": 100, "gain": "low"},
+      {"at": "straight_bridge_span_mid", "length": 120, "gain": "medium"},
+      {"at": "exit_sweeper_fujisawa", "length": 150, "gain": "medium"},
+      {"at": "exit_sweeper_chigasaki", "length": 160, "gain": "high"},
+      {"at": "straight_final_run_mid", "length": 300, "gain": "high"}
+    ],
+    "hazards": [
+      {"type": "crosswind_zone", "zones": ["straight_bridge_span", "straight_coast_open"], "handling_reduction": "10%"},
+      {"type": "dawn_glare", "zones": ["straight_coast_open", "straight_final_run"], "visibility_reduction": "20%"},
+      {"type": "wet_road_edge", "zones": ["sweeper_enoshima_approach_exit", "sweeper_chigasaki_bend_exit"], "grip_reduction": "15%"},
+      {"type": "sand_drift", "zones": ["straight_beachfront_north_edge"], "speed_penalty": "20%"}
+    ],
+    "elevation": [
+      {"segment": "start_to_enoshima", "change": "+2m", "gradient": "1%"},
+      {"segment": "katase_bridge", "change": "+5m", "gradient": "3%"},
+      {"segment": "bridge_to_fujisawa", "change": "-5m", "gradient": "-3%"},
+      {"segment": "chigasaki_to_finish", "change": "-3m", "gradient": "-1.5%"}
+    ]
+  },
+  "flow_notes": {
+    "drift_initiation": [
+      "sweeper_enoshima_approach_entry",
+      "sweeper_katase_bridge_entry",
+      "sweeper_fujisawa_exit_entry",
+      "sweeper_chigasaki_bend_entry"
+    ],
+    "braking_points": [
+      "sweeper_enoshima_approach_marker",
+      "sweeper_katase_bridge_marker",
+      "sweeper_chigasaki_bend_marker"
+    ],
+    "weight_transfer_zones": [
+      "exit_sweeper_enoshima",
+      "bridge_crest",
+      "exit_sweeper_chigasaki"
+    ],
+    "optimal_lines": {
+      "sweeper_enoshima_approach": "gentle_outside_arc_avoid_wet_edge",
+      "sweeper_katase_bridge": "inside_lane_into_bridge_climb",
+      "straight_bridge_span": "center_lane_crosswind_stability",
+      "sweeper_fujisawa_exit": "late_apex_max_exit_to_coast_south",
+      "sweeper_chigasaki_bend": "wide_smooth_arc_carry_into_final_run"
+    },
+    "beginner_focus": {
+      "corner_spacing": "generous_long_straight_between_each",
+      "hazard_severity": "low_handles_well_with_minor_correction",
+      "boost_placement": "consistent_reward_after_clean_sweeper",
+      "visual_telegraphing": "ocean_horizon_as_natural_corner_reference"
+    }
+  },
+  "mobile_optimization": {
+    "lod_distances": {"near": 50, "mid": 200, "far": 700},
+    "texture_res": "512x512",
+    "poly_count_target": 11000,
+    "lighting_baked": false,
+    "dynamic_sky": true,
+    "shadow_casters": "player_only_for_dawn_performance",
+    "ocean_rendering": "static_plane_with_scroll_texture"
+  },
+  "visual_identity": {
+    "lighting": "dawn_directional_warm_orange_low_angle",
+    "signage": "highway_blue_reflective_route_markers",
+    "barriers": "guardrail_silver_ocean_side",
+    "environment": "shonan_coastline_surf_beach_island_bg",
+    "atmosphere": "early_morning_mist_light_sea_breeze",
+    "color_palette": ["#1a0a00", "#3d1f00", "#ff6b35", "#ffd700", "#87ceeb"]
+  }
+}

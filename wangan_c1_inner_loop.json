@@ -1,0 +1,135 @@
+{
+  "track_name": "C1 Inner Loop: Full Circuit",
+  "style": "WANGAN EXPRESSWAY DIRECTOR",
+  "difficulty": "Expert",
+  "setting": "Night Time",
+  "course_type": "Tokyo Expressway SP-Battle",
+  "sp_battle_config": {
+    "max_sp": 100,
+    "drain_rates": {
+      "base": 0.25,
+      "tunnel_multiplier": 1.6,
+      "merge_multiplier": 1.3,
+      "breakaway_threshold_m": 80
+    },
+    "mistake_penalties": {
+      "wall_scrape": -4,
+      "wall_hit": -10,
+      "heavy_collision": -18,
+      "off_line": -3,
+      "brake_check": -5,
+      "missed_apex": -2
+    },
+    "skill_rewards": {
+      "perfect_draft": 2,
+      "clean_overtake": 3,
+      "sustained_280kph_5s": 1,
+      "inside_lane_hold": 1
+    }
+  },
+  "layout": {
+    "nodes": [
+      "start_tatsumi_pa",
+      "straight_east_c1",
+      "sweeper_tatsumi_exit",
+      "merge_hammacho",
+      "straight_shintomicho",
+      "tunnel_kyobashi",
+      "exit_kyobashi",
+      "sweeper_nihonbashi",
+      "merge_edobashi",
+      "straight_kandabashi",
+      "sweeper_uchibori",
+      "tunnel_sakurada",
+      "exit_sakurada",
+      "straight_hibiya",
+      "sweeper_kasumigaseki",
+      "final_straight_tatsumi",
+      "finish_tatsumi_pa"
+    ],
+    "curves": [
+      {"id": "sweeper_tatsumi_exit", "angle": 55, "radius": 380, "banking": "slight_left", "surface": "asphalt"},
+      {"id": "sweeper_nihonbashi", "angle": 70, "radius": 310, "banking": "flat", "surface": "asphalt"},
+      {"id": "sweeper_uchibori", "angle": 90, "radius": 420, "banking": "slight_right", "surface": "asphalt"},
+      {"id": "sweeper_kasumigaseki", "angle": 65, "radius": 350, "banking": "flat", "surface": "asphalt"}
+    ],
+    "straights": [
+      {"id": "straight_east_c1", "length": 1800, "width": 12, "lanes": 3},
+      {"id": "straight_shintomicho", "length": 1200, "width": 12, "lanes": 3},
+      {"id": "straight_kandabashi", "length": 950, "width": 11, "lanes": 2},
+      {"id": "straight_hibiya", "length": 1400, "width": 12, "lanes": 3},
+      {"id": "final_straight_tatsumi", "length": 2100, "width": 14, "lanes": 3}
+    ],
+    "boost_zones": [
+      {"at": "exit_sweeper_tatsumi", "length": 180, "gain": "high"},
+      {"at": "exit_tunnel_kyobashi", "length": 220, "gain": "medium"},
+      {"at": "exit_sweeper_nihonbashi", "length": 160, "gain": "high"},
+      {"at": "exit_merge_edobashi", "length": 120, "gain": "medium"},
+      {"at": "exit_tunnel_sakurada", "length": 220, "gain": "high"},
+      {"at": "final_straight_mid", "length": 400, "gain": "high"}
+    ],
+    "hazards": [
+      {"type": "traffic", "density": "low", "zones": ["straight_east_c1", "straight_hibiya"]},
+      {"type": "tunnel_shadow", "zones": ["tunnel_kyobashi", "tunnel_sakurada"], "visibility_reduction": "50%"},
+      {"type": "merge_conflict", "zones": ["merge_hammacho", "merge_edobashi"], "ai_aggression": "high"},
+      {"type": "tight_lane_width", "zones": ["straight_kandabashi"], "width_reduction": "1m"},
+      {"type": "wet_patch", "zones": ["sweeper_uchibori_exit"], "grip_reduction": "20%"}
+    ],
+    "elevation": [
+      {"segment": "straight_east_c1", "change": "+3m", "gradient": "1.5%"},
+      {"segment": "tunnel_kyobashi", "change": "-5m", "gradient": "-2.5%"},
+      {"segment": "sweeper_uchibori", "change": "+4m", "gradient": "2%"},
+      {"segment": "tunnel_sakurada", "change": "-4m", "gradient": "-2%"},
+      {"segment": "final_straight_tatsumi", "change": "+2m", "gradient": "1%"}
+    ]
+  },
+  "flow_notes": {
+    "drift_initiation": [
+      "sweeper_tatsumi_exit_entry",
+      "sweeper_nihonbashi_entry",
+      "sweeper_uchibori_entry",
+      "sweeper_kasumigaseki_entry"
+    ],
+    "braking_points": [
+      "tunnel_kyobashi_entrance",
+      "merge_hammacho_approach",
+      "tunnel_sakurada_entrance",
+      "sweeper_kasumigaseki_entry"
+    ],
+    "weight_transfer_zones": [
+      "exit_sweeper_tatsumi",
+      "exit_sweeper_nihonbashi",
+      "exit_sweeper_uchibori",
+      "exit_sweeper_kasumigaseki"
+    ],
+    "optimal_lines": {
+      "sweeper_tatsumi_exit": "late_apex_carry_speed_to_straight",
+      "tunnel_kyobashi": "center_lane_minimize_tunnel_penalty",
+      "sweeper_nihonbashi": "wide_entry_tight_exit_for_kandabashi",
+      "merge_edobashi": "inside_lane_hold_for_sp_drain_pressure",
+      "tunnel_sakurada": "full_throttle_no_lift",
+      "sweeper_kasumigaseki": "smooth_wide_arc_max_exit_velocity"
+    },
+    "sp_pressure_tactics": [
+      "hold_inside_lane_on_straights_to_force_draft",
+      "block_sweeper_exits_to_break_opponent_momentum",
+      "tunnel_entry_side_by_side_denies_clean_line"
+    ]
+  },
+  "mobile_optimization": {
+    "lod_distances": {"near": 50, "mid": 200, "far": 600},
+    "texture_res": "512x512",
+    "poly_count_target": 14000,
+    "lighting_baked": true,
+    "shadow_casters": "limited_to_player_and_opponents",
+    "traffic_sprites": "billboard_2d"
+  },
+  "visual_identity": {
+    "lighting": "sodium_vapor_highway_lamps",
+    "signage": "jdm_highway_green_reflective",
+    "barriers": "concrete_jersey_barrier_weathered",
+    "skybox": "tokyo_tower_silhouette_dark",
+    "atmosphere": "late_night_clear_low_humidity",
+    "color_palette": ["#0a0a12", "#12121e", "#1e2a3a", "#d4a017", "#f0f0f0"]
+  }
+}

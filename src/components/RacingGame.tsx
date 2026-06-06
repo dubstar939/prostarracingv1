@@ -513,40 +513,63 @@ export const RacingGame: React.FC<RacingGameProps> = ({
 
       // Theme-specific layout patterns
       if (trackTheme === 'neon_city') {
-        // Neon City: Tight turns, many straights, high density
+        // Urban Downtown / C1-style: 90-degree corners, medium straights, grid flow
         for (let i = 0; i < 15; i++) {
-          addStraight(50 + seededRandom() * 100);
-          addCurve(20, 40, 20, (seededRandom() > 0.5 ? 1 : -1) * (4 + seededRandom() * 4), 0);
+          addStraight(60 + Math.floor(seededRandom() * 80));
+          addCurve(15, 20, 15, (seededRandom() > 0.5 ? 1 : -1) * (7 + seededRandom() * 3), 0);
         }
       } else if (trackTheme === 'coastal_highway') {
-        // Coastal: Long sweeping curves, gentle hills
-        for (let i = 0; i < 10; i++) {
-          addHill(100, 100, 100, (seededRandom() - 0.5) * 40);
-          addCurve(150, 200, 150, (seededRandom() - 0.5) * 3, 0);
+        // Shonan-style: long sweepers, gentle crests, generous corner spacing
+        for (let i = 0; i < 8; i++) {
+          addStraight(150 + Math.floor(seededRandom() * 100));
+          addCurve(100, 150, 100, (seededRandom() - 0.5) * 2.5, 0);
+          if (seededRandom() > 0.5) addHill(80, 80, 80, (seededRandom() - 0.5) * 25);
         }
       } else if (trackTheme === 'desert_canyon') {
-        // Desert Canyon: Massive hills, sharp drops
+        // Massive crests, dramatic drops, moderate curves between
         for (let i = 0; i < 10; i++) {
-          addHill(100, 100, 100, (seededRandom() - 0.5) * 120);
-          addCurve(80, 80, 80, (seededRandom() - 0.5) * 5, 0);
+          addHill(60, 80, 60, (seededRandom() - 0.5) * 150);
+          addStraight(40 + Math.floor(seededRandom() * 60));
+          addCurve(50, 60, 50, (seededRandom() - 0.5) * 4, 0);
         }
       } else if (trackTheme === 'cyber_industrial') {
-        // Industrial: Technical S-curves, flat but complex
-        for (let i = 0; i < 12; i++) {
-          addStraight(80);
-          addSCurves();
+        // Keihin-style: wide sweepers, two technical hairpins, flat with rhythm chicanes
+        addStraight(200);
+        addCurve(60, 80, 60, (seededRandom() > 0.5 ? 1 : -1) * 3, 0);
+        for (let i = 0; i < 4; i++) {
+          addStraight(120 + Math.floor(seededRandom() * 80));
+          if (i % 2 === 0) {
+            // Hairpin
+            addCurve(20, 20, 20, (seededRandom() > 0.5 ? 1 : -1) * 8, 0);
+            addCurve(20, 20, 20, (seededRandom() > 0.5 ? 1 : -1) * 8, 0);
+          } else {
+            // Wide sweeper
+            addCurve(60, 80, 60, (seededRandom() > 0.5 ? 1 : -1) * (2 + seededRandom() * 2), 0);
+          }
         }
+        addStraight(160);
       } else if (trackTheme === 'mountain_pass') {
-        // Mountain Pass: Extreme elevation, sharp curves
-        for (let i = 0; i < 12; i++) {
-          addHill(50, 50, 50, (seededRandom() - 0.5) * 200);
-          addCurve(40, 40, 40, (seededRandom() > 0.5 ? 1 : -1) * 6, 0);
+        // Hakone-style: steep climbs between hairpins, short linking straights
+        for (let i = 0; i < 14; i++) {
+          addHill(30, 40, 30, (seededRandom() > 0.5 ? 1 : -1) * (80 + seededRandom() * 80));
+          addCurve(25, 25, 25, (seededRandom() > 0.5 ? 1 : -1) * (5 + seededRandom() * 3), 0);
+          addStraight(20 + Math.floor(seededRandom() * 30));
         }
       } else if (trackTheme === 'urban_downtown') {
-        // Urban Downtown: Grid-like, many straights and 90 degree turns
-        for (let i = 0; i < 15; i++) {
-          addStraight(100);
-          addCurve(20, 20, 20, (seededRandom() > 0.5 ? 1 : -1) * 8, 0);
+        // Shinjuku-style: mixed corner angles, medium straights, rhythm sections
+        for (let i = 0; i < 12; i++) {
+          addStraight(80 + Math.floor(seededRandom() * 80));
+          const cornerType = seededRandom();
+          if (cornerType > 0.6) {
+            // 90-degree corner
+            addCurve(20, 20, 20, (seededRandom() > 0.5 ? 1 : -1) * (7 + seededRandom() * 2), 0);
+          } else if (cornerType > 0.3) {
+            // Wide sweeper
+            addCurve(40, 60, 40, (seededRandom() > 0.5 ? 1 : -1) * (3 + seededRandom() * 2), 0);
+          } else {
+            // S-curve rhythm section
+            addSCurves();
+          }
         }
       }
 
