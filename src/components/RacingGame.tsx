@@ -4,7 +4,7 @@ import { audioManager } from '../services/audioService';
 import { Volume2, VolumeX, Pause, Play as PlayIcon, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Zap, Monitor, Maximize2, Minimize2, Gamepad2 } from 'lucide-react';
 
 import { drawCar, shadeColor } from '../utils/carRenderer';
-import { initializeCarSprites } from '../utils/carSpriteLoader';
+import { initializeCarSprites, areSpritesReady } from '../utils/carSpriteLoader';
 
 import { CarConfig, RaceMode, PERFORMANCE_PARTS, CarModelType } from '../types';
 import { DifficultyLevel, DIFFICULTY_PRESETS } from '../constants/gameConfig';
@@ -186,6 +186,8 @@ export const RacingGame: React.FC<RacingGameProps> = ({
   const [isReady, setIsReady] = useState(false);
   const [countdown, setCountdown] = useState<number | null>(null);
   const [weather, setWeather] = useState<'clear' | 'rain' | 'fog'>('clear');
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const [hud, setHud] = useState({
     speed: 0,
@@ -244,6 +246,36 @@ export const RacingGame: React.FC<RacingGameProps> = ({
   }, []);
 
   useEffect(() => {
+    // Asset loading and game initialization effect
+    const initializeGame = async () => {
+      try {
+        setIsLoading(true);
+        setLoadError(null);
+        
+        // Wait for sprites to be ready
+        await initializeCarSprites();
+        
+        // Validate track theme exists
+        const validThemes = ['neon_city', 'coastal_highway', 'desert_canyon', 'cyber_industrial', 'mountain_pass', 'urban_downtown'];
+        if (!validThemes.includes(trackTheme)) {
+          console.warn(`Invalid track theme "${trackTheme}", falling back to neon_city`);
+        }
+        
+        // Small delay to ensure assets are fully loaded
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        setIsLoading(false);
+      } catch (error) {
+        console.error('Game initialization failed:', error);
+        setLoadError('Failed to load game assets. Please refresh the page.');
+        setIsLoading(false);
+      }
+    };
+    
+    initializeGame();
+  }, [trackTheme]);
+
+  useEffect(() => {
     const checkMobile = () => {
       setIsMobile(/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 1024);
     };
@@ -282,8 +314,20 @@ export const RacingGame: React.FC<RacingGameProps> = ({
 
     const canvas = canvasRef.current;
     if (!canvas) return;
+    
+    // Fix #3: Canvas context loss handling with error recovery
     const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+    if (!ctx) {
+      console.error('Failed to get canvas 2D context - canvas may be lost');
+      setLoadError('Graphics initialization failed. Please refresh the page.');
+      return;
+    }
+    
+    // Check if context is lost
+    if (ctx.canvas.width === 0 || ctx.canvas.height === 0) {
+      console.warn('Canvas has zero dimensions, skipping render');
+      return;
+    }
 
     // Track State
     let segments: RoadSegment[] = [];
@@ -454,63 +498,88 @@ export const RacingGame: React.FC<RacingGameProps> = ({
         return seed / 233280;
       };
 
-      // Theme-based colors from 939PRO Asset Package
-      const themeColors = {
-        neon_city: { 
-          road: BIOMES.NEON_CITY.palette.road, 
-          grass: BIOMES.NEON_CITY.palette.env[0], 
-          rumble: BIOMES.NEON_CITY.palette.neon, 
-          lane: BIOMES.NEON_CITY.palette.highlight, 
-          altRoad: shadeColor(BIOMES.NEON_CITY.palette.road, 10), 
-          altGrass: BIOMES.NEON_CITY.palette.env[1], 
-          altRumble: '#000' 
-        },
-        coastal_highway: { 
-          road: BIOMES.COASTAL_HIGHWAY.palette.road, 
-          grass: BIOMES.COASTAL_HIGHWAY.palette.env[0], 
-          rumble: BIOMES.COASTAL_HIGHWAY.palette.neon, 
-          lane: BIOMES.COASTAL_HIGHWAY.palette.highlight, 
-          altRoad: shadeColor(BIOMES.COASTAL_HIGHWAY.palette.road, 10), 
-          altGrass: BIOMES.COASTAL_HIGHWAY.palette.env[1], 
-          altRumble: '#000' 
-        },
-        desert_canyon: { 
-          road: BIOMES.DESERT_CANYON.palette.road, 
-          grass: BIOMES.DESERT_CANYON.palette.env[0], 
-          rumble: BIOMES.DESERT_CANYON.palette.neon, 
-          lane: BIOMES.DESERT_CANYON.palette.highlight, 
-          altRoad: shadeColor(BIOMES.DESERT_CANYON.palette.road, 10), 
-          altGrass: BIOMES.DESERT_CANYON.palette.env[1], 
-          altRumble: '#000' 
-        },
-        cyber_industrial: { 
-          road: BIOMES.CYBER_INDUSTRIAL.palette.road, 
-          grass: BIOMES.CYBER_INDUSTRIAL.palette.env[0], 
-          rumble: BIOMES.CYBER_INDUSTRIAL.palette.neon, 
-          lane: BIOMES.CYBER_INDUSTRIAL.palette.highlight, 
-          altRoad: shadeColor(BIOMES.CYBER_INDUSTRIAL.palette.road, 10), 
-          altGrass: BIOMES.CYBER_INDUSTRIAL.palette.env[1], 
-          altRumble: '#000' 
-        },
-        mountain_pass: { 
-          road: BIOMES.MOUNTAIN_PASS.palette.road, 
-          grass: BIOMES.MOUNTAIN_PASS.palette.env[0], 
-          rumble: BIOMES.MOUNTAIN_PASS.palette.neon, 
-          lane: BIOMES.MOUNTAIN_PASS.palette.highlight, 
-          altRoad: shadeColor(BIOMES.MOUNTAIN_PASS.palette.road, 10), 
-          altGrass: BIOMES.MOUNTAIN_PASS.palette.env[1], 
-          altRumble: '#000' 
-        },
-        urban_downtown: { 
-          road: BIOMES.URBAN_DOWNTOWN.palette.road, 
-          grass: BIOMES.URBAN_DOWNTOWN.palette.env[0], 
-          rumble: BIOMES.URBAN_DOWNTOWN.palette.neon, 
-          lane: BIOMES.URBAN_DOWNTOWN.palette.highlight, 
-          altRoad: shadeColor(BIOMES.URBAN_DOWNTOWN.palette.road, 10), 
-          altGrass: BIOMES.URBAN_DOWNTOWN.palette.env[1], 
-          altRumble: '#000' 
+      // Fix #1: Theme-based colors from 939PRO Asset Package with fallback
+      const getThemeColors = () => {
+        try {
+          const themeMap: Record<string, any> = {
+            neon_city: { 
+              road: BIOMES.NEON_CITY.palette.road, 
+              grass: BIOMES.NEON_CITY.palette.env[0], 
+              rumble: BIOMES.NEON_CITY.palette.neon, 
+              lane: BIOMES.NEON_CITY.palette.highlight, 
+              altRoad: shadeColor(BIOMES.NEON_CITY.palette.road, 10), 
+              altGrass: BIOMES.NEON_CITY.palette.env[1], 
+              altRumble: '#000' 
+            },
+            coastal_highway: { 
+              road: BIOMES.COASTAL_HIGHWAY.palette.road, 
+              grass: BIOMES.COASTAL_HIGHWAY.palette.env[0], 
+              rumble: BIOMES.COASTAL_HIGHWAY.palette.neon, 
+              lane: BIOMES.COASTAL_HIGHWAY.palette.highlight, 
+              altRoad: shadeColor(BIOMES.COASTAL_HIGHWAY.palette.road, 10), 
+              altGrass: BIOMES.COASTAL_HIGHWAY.palette.env[1], 
+              altRumble: '#000' 
+            },
+            desert_canyon: { 
+              road: BIOMES.DESERT_CANYON.palette.road, 
+              grass: BIOMES.DESERT_CANYON.palette.env[0], 
+              rumble: BIOMES.DESERT_CANYON.palette.neon, 
+              lane: BIOMES.DESERT_CANYON.palette.highlight, 
+              altRoad: shadeColor(BIOMES.DESERT_CANYON.palette.road, 10), 
+              altGrass: BIOMES.DESERT_CANYON.palette.env[1], 
+              altRumble: '#000' 
+            },
+            cyber_industrial: { 
+              road: BIOMES.CYBER_INDUSTRIAL.palette.road, 
+              grass: BIOMES.CYBER_INDUSTRIAL.palette.env[0], 
+              rumble: BIOMES.CYBER_INDUSTRIAL.palette.neon, 
+              lane: BIOMES.CYBER_INDUSTRIAL.palette.highlight, 
+              altRoad: shadeColor(BIOMES.CYBER_INDUSTRIAL.palette.road, 10), 
+              altGrass: BIOMES.CYBER_INDUSTRIAL.palette.env[1], 
+              altRumble: '#000' 
+            },
+            mountain_pass: { 
+              road: BIOMES.MOUNTAIN_PASS.palette.road, 
+              grass: BIOMES.MOUNTAIN_PASS.palette.env[0], 
+              rumble: BIOMES.MOUNTAIN_PASS.palette.neon, 
+              lane: BIOMES.MOUNTAIN_PASS.palette.highlight, 
+              altRoad: shadeColor(BIOMES.MOUNTAIN_PASS.palette.road, 10), 
+              altGrass: BIOMES.MOUNTAIN_PASS.palette.env[1], 
+              altRumble: '#000' 
+            },
+            urban_downtown: { 
+              road: BIOMES.URBAN_DOWNTOWN.palette.road, 
+              grass: BIOMES.URBAN_DOWNTOWN.palette.env[0], 
+              rumble: BIOMES.URBAN_DOWNTOWN.palette.neon, 
+              lane: BIOMES.URBAN_DOWNTOWN.palette.highlight, 
+              altRoad: shadeColor(BIOMES.URBAN_DOWNTOWN.palette.road, 10), 
+              altGrass: BIOMES.URBAN_DOWNTOWN.palette.env[1], 
+              altRumble: '#000' 
+            }
+          };
+          
+          const colors = themeMap[trackTheme];
+          if (!colors) {
+            console.warn(`Unknown track theme "${trackTheme}", using neon_city fallback`);
+            return themeMap.neon_city;
+          }
+          return colors;
+        } catch (error) {
+          console.error('Failed to load theme colors:', error);
+          // Fallback colors if biome data is missing
+          return {
+            road: '#1a1a2e',
+            grass: '#16213e',
+            rumble: '#ff00ff',
+            lane: '#4d4dff',
+            altRoad: '#2a2a3e',
+            altGrass: '#0f3460',
+            altRumble: '#000'
+          };
         }
-      }[trackTheme];
+      };
+      
+      const themeColors = getThemeColors();
 
       const addStraight = (length: number) => addRoad(length, length, length, 0, 0, themeColors);
       const addCurve = (enter: number, hold: number, leave: number, curve: number, hill: number) => addRoad(enter, hold, leave, curve, hill, themeColors);
@@ -1641,7 +1710,7 @@ export const RacingGame: React.FC<RacingGameProps> = ({
       window.removeEventListener('gamepadconnected', handleGamepadConnected);
       window.removeEventListener('gamepaddisconnected', handleGamepadDisconnected);
     };
-  }, [level, onRaceEnd, isReady, carConfig, aspectRatio, difficulty]);
+  }, [level, onRaceEnd, carConfig, aspectRatio, difficulty]); // Fix #9: Removed isReady from dependencies to prevent re-initialization
 
   const handleStartRace = () => {
     audioManager.init();
@@ -2107,8 +2176,54 @@ export const RacingGame: React.FC<RacingGameProps> = ({
         className={`w-full h-full rounded-sm border-4 border-zinc-800 shadow-2xl bg-black ${isFullscreen ? 'rounded-none border-0' : ''}`}
       />
       
+      {/* Loading Screen */}
+      {isLoading && (
+        <div className="absolute inset-0 bg-black/90 backdrop-blur-md flex flex-col items-center justify-center z-50">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="text-center space-y-6"
+          >
+            <h2 className="text-5xl font-black italic uppercase tracking-tighter text-cyan-400 drop-shadow-[0_0_20px_rgba(6,182,212,0.8)]">
+              Loading...
+            </h2>
+            <div className="w-64 h-2 bg-zinc-800 rounded-full overflow-hidden">
+              <motion.div 
+                className="h-full bg-gradient-to-r from-cyan-400 to-fuchsia-500"
+                initial={{ width: '0%' }}
+                animate={{ width: '100%' }}
+                transition={{ duration: 2, repeat: Infinity }}
+              />
+            </div>
+            <p className="text-zinc-400 font-mono text-sm">Initializing race assets...</p>
+          </motion.div>
+        </div>
+      )}
+      
+      {/* Error Screen */}
+      {loadError && !isLoading && (
+        <div className="absolute inset-0 bg-red-900/90 backdrop-blur-md flex flex-col items-center justify-center z-50 pointer-events-auto">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="text-center space-y-6 p-8"
+          >
+            <h2 className="text-4xl font-black italic uppercase tracking-tighter text-white drop-shadow-[0_0_20px_rgba(255,0,0,0.8)]">
+              Error
+            </h2>
+            <p className="text-white font-mono">{loadError}</p>
+            <button 
+              onClick={() => window.location.reload()}
+              className="bg-white text-black font-bold py-3 px-8 rounded-sm hover:bg-zinc-200 transition-all uppercase tracking-widest"
+            >
+              Refresh Page
+            </button>
+          </motion.div>
+        </div>
+      )}
+      
       {/* HUD Overlay - Matching Image Style */}
-      {isReady ? (
+      {!isLoading && !loadError && isReady ? (
         <div className="absolute inset-0 pointer-events-none p-6 text-white font-sans">
           {/* Pause Overlay */}
           {isPaused && (
