@@ -225,6 +225,7 @@ export const RacingGame: React.FC<RacingGameProps> = ({
   const [gameStarted, setGameStarted] = useState(false);
   const [gamepadConnected, setGamepadConnected] = useState(false);
   const gamepadIndexRef = useRef<number | null>(null);
+  const [spritesLoaded, setSpritesLoaded] = useState(false);
 
   const SCREEN_WIDTH = aspectRatio === '4:3' ? 800 : 1066;
   const SCREEN_HEIGHT = aspectRatio === '4:3' ? 600 : 600;
@@ -235,8 +236,10 @@ export const RacingGame: React.FC<RacingGameProps> = ({
       try {
         await initializeCarSprites();
         console.log('Car sprite sheets initialized');
+        setSpritesLoaded(true);
       } catch (error) {
-        console.warn('Sprite initialization failed, will use procedural rendering:', error);
+        setSpritesLoaded(true); // Continue even if sprites fail to load
+         console.warn('Sprite initialization failed, will use procedural rendering:', error);
       }
     };
     
