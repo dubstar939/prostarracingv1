@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { motion } from 'motion/react';
 import { audioManager } from '../services/audioService';
 import { Volume2, VolumeX, Pause, Play as PlayIcon, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Zap, Monitor, Maximize2, Minimize2, Gamepad2 } from 'lucide-react';
@@ -654,6 +654,46 @@ export const RacingGame: React.FC<RacingGameProps> = ({
     let animationFrameId: number;
     let startTime = Date.now();
     let finished = false;
+    let lastHudUpdate = 0;
+    const HUD_UPDATE_INTERVAL = 1 / 30; // Update HUD at 30 FPS instead of 60
+    
+    // Cached HUD values to avoid unnecessary React state updates
+    let cachedHudValues = {
+      speed: 0,
+      position: 0,
+      lap: 0,
+      time: 0,
+      turbo: 0,
+      damage: 0,
+      playerSP: 100,
+      rivalSP: 100,
+      driftScore: 0
+    };
+    const HUD_CHANGE_THRESHOLD = {
+      speed: 100, // Only update if speed changes by more than 1 km/h
+      position: 1,
+      lap: 1,
+      turbo: 1,
+      damage: 0.5,
+      playerSP: 0.5,
+      rivalSP: 0.5,
+      driftScore: 10
+    };
+
+    // Object pools for particles to reduce garbage collection
+    const smokePool: { x: number; y: number; vx: number; vy: number; life: number; size: number; color: string; active: boolean }[] = 
+      Array.from({ length: 100 }, () => ({ x: 0, y: 0, vx: 0, vy: 0, life: 0, size: 0, color: '#888', active: false }));
+    const turboPool: { x: number; y: number; vx: number; vy: number; life: number; size: number; color: string; active: boolean }[] = 
+      Array.from({ length: 50 }, () => ({ x: 0, y: 0, vx: 0, vy: 0, life: 0, size: 0, color: '#0ff', active: false }));
+    const sparkPool: { x: number; y: number; vx: number; vy: number; life: number; size: number; color: string; active: boolean }[] = 
+      Array.from({ length: 80 }, () => ({ x: 0, y: 0, vx: 0, vy: 0, life: 0, size: 0, color: '#ff0', active: false }));
+    const slipstreamPool: { x: number; z: number; life: number; opacity: number; active: boolean }[] = 
+      Array.from({ length: 30 }, () => ({ x: 0, z: 0, life: 0, opacity: 0, active: false }));
+    
+    let activeSmokeCount = 0;
+    let activeTurboCount = 0;
+    let activeSparkCount = 0;
+    let activeSlipstreamCount = 0;
 
     let turboMeter = 0;
     let turboActive = false;
@@ -675,13 +715,7 @@ export const RacingGame: React.FC<RacingGameProps> = ({
       }));
     }
 
-    // Smoke State
-    let smokeParticles: { x: number; y: number; vx: number; vy: number; life: number; size: number; color: string }[] = [];
-    let turboParticles: { x: number; y: number; vx: number; vy: number; life: number; size: number; color: string }[] = [];
-    let sparkParticles: { x: number; y: number; vx: number; vy: number; life: number; size: number; color: string }[] = [];
-    
-    // Slipstream State
-    let slipstreamParticles: { x: number; z: number; life: number; opacity: number }[] = [];
+    // Smoke State - using object pools instead of dynamic arrays
     let isSlipstreaming = false;
     let screenShake = 0;
 
@@ -708,34 +742,57 @@ export const RacingGame: React.FC<RacingGameProps> = ({
 
     /**
      * Updates environmental effects like particles and weather.
+     * Uses object pools to avoid garbage collection overhead.
      * @param {number} dt Delta time in seconds.
      */
     const updateEnvironment = (dt: number) => {
       if (screenShake > 0) screenShake -= dt * 10;
 
-      smokeParticles = smokeParticles.filter(p => {
+      // Update smoke particles from pool
+      for (let i = 0; i < activeSmokeCount; i++) {
+        const p = smokePool[i];
         p.x += p.vx * dt;
         p.y += p.vy * dt;
         p.life -= dt * 2;
         p.size += dt * 20;
-        return p.life > 0;
-      });
+        if (p.life <= 0) {
+          // Swap with last active particle
+          smokePool[i] = smokePool[activeSmokeCount - 1];
+          smokePool[activeSmokeCount - 1] = p;
+          activeSmokeCount--;
+          i--;
+        }
+      }
 
-      turboParticles = turboParticles.filter(p => {
+      // Update turbo particles from pool
+      for (let i = 0; i < activeTurboCount; i++) {
+        const p = turboPool[i];
         p.x += p.vx * dt;
         p.y += p.vy * dt;
         p.life -= dt * 5;
         p.size -= dt * 10;
-        return p.life > 0;
-      });
+        if (p.life <= 0) {
+          turboPool[i] = turboPool[activeTurboCount - 1];
+          turboPool[activeTurboCount - 1] = p;
+          activeTurboCount--;
+          i--;
+        }
+      }
 
-      sparkParticles = sparkParticles.filter(p => {
+      // Update spark particles from pool
+      for (let i = 0; i < activeSparkCount; i++) {
+        const p = sparkPool[i];
         p.x += p.vx * dt;
         p.y += p.vy * dt;
         p.life -= dt * 3;
         p.vy += dt * 500;
-        return p.life > 0;
-      });
+        if (p.life <= 0) {
+          sparkPool[i] = sparkPool[activeSparkCount - 1];
+          sparkPool[activeSparkCount - 1] = p;
+          activeSparkCount--;
+          i--;
+        }
+      }
 
       checkpointTime -= dt;
       if (checkpointTime <= 0) {
@@ -755,11 +812,17 @@ export const RacingGame: React.FC<RacingGameProps> = ({
         });
       }
 
-      for (let i = slipstreamParticles.length - 1; i >= 0; i--) {
-        const p = slipstreamParticles[i];
+      // Update slipstream particles from pool
+      for (let i = 0; i < activeSlipstreamCount; i++) {
+        const p = slipstreamPool[i];
         p.life -= dt;
         p.opacity = p.life * 0.5;
-        if (p.life <= 0) slipstreamParticles.splice(i, 1);
+        if (p.life <= 0) {
+          slipstreamPool[i] = slipstreamPool[activeSlipstreamCount - 1];
+          slipstreamPool[activeSlipstreamCount - 1] = p;
+          activeSlipstreamCount--;
+          i--;
+        }
       }
     };
 
@@ -940,15 +1003,18 @@ export const RacingGame: React.FC<RacingGameProps> = ({
                          (damage > 70 ? 'rgba(80, 80, 80, 0.4)' : 'rgba(255, 255, 255, 0.4)');
       
       for (let i = 0; i < smokeCount; i++) {
-        smokeParticles.push({
-          x: SCREEN_WIDTH / 2 + (Math.random() - 0.5) * 140 + (isDrifting ? driftAngle * 100 : 0),
-          y: SCREEN_HEIGHT - 50 + (Math.random() - 0.5) * 10,
-          vx: (Math.random() - 0.5) * 4 + (isDrifting ? -curve * 5 : 0),
-          vy: -Math.random() * 2 - 1,
-          life: 0.4 + Math.random() * 0.6,
-          size: 15 + Math.random() * 15,
-          color: smokeColor
-        });
+        // Use object pool instead of creating new objects
+        if (activeSmokeCount < smokePool.length) {
+          const p = smokePool[activeSmokeCount];
+          p.x = SCREEN_WIDTH / 2 + (Math.random() - 0.5) * 140 + (isDrifting ? driftAngle * 100 : 0);
+          p.y = SCREEN_HEIGHT - 50 + (Math.random() - 0.5) * 10;
+          p.vx = (Math.random() - 0.5) * 4 + (isDrifting ? -curve * 5 : 0);
+          p.vy = -Math.random() * 2 - 1;
+          p.life = 0.4 + Math.random() * 0.6;
+          p.size = 15 + Math.random() * 15;
+          p.color = smokeColor;
+          activeSmokeCount++;
+        }
       }
     };
 
@@ -970,17 +1036,17 @@ export const RacingGame: React.FC<RacingGameProps> = ({
           turboMeter = 0;
         }
         
-        // Turbo particles
-        for (let i = 0; i < 5; i++) {
-          turboParticles.push({
-            x: SCREEN_WIDTH / 2 + (Math.random() - 0.5) * 40,
-            y: SCREEN_HEIGHT - 40,
-            vx: (Math.random() - 0.5) * 50,
-            vy: 100 + Math.random() * 200,
-            life: 0.3,
-            size: 10 + Math.random() * 10,
-            color: Math.random() > 0.5 ? '#3b82f6' : '#60a5fa'
-          });
+        // Turbo particles - use object pool
+        for (let i = 0; i < 5 && activeTurboCount < turboPool.length; i++) {
+          const p = turboPool[activeTurboCount];
+          p.x = SCREEN_WIDTH / 2 + (Math.random() - 0.5) * 40;
+          p.y = SCREEN_HEIGHT - 40;
+          p.vx = (Math.random() - 0.5) * 50;
+          p.vy = 100 + Math.random() * 200;
+          p.life = 0.3;
+          p.size = 10 + Math.random() * 10;
+          p.color = Math.random() > 0.5 ? '#3b82f6' : '#60a5fa';
+          activeTurboCount++;
         }
       } else {
         if (shiftKey || isDrifting || gamepadTurbo) {
@@ -1172,16 +1238,17 @@ export const RacingGame: React.FC<RacingGameProps> = ({
         spCleanDriveTimer = 0;
       }
 
-      for (let i = 0; i < 15; i++) {
-        sparkParticles.push({
-          x: SCREEN_WIDTH / 2 + (Math.random() - 0.5) * 100,
-          y: SCREEN_HEIGHT - 100,
-          vx: (Math.random() - 0.5) * 500,
-          vy: -Math.random() * 300,
-          life: 0.5 + Math.random() * 0.5,
-          size: 2 + Math.random() * 3,
-          color: '#fbbf24'
-        });
+      // Spark particles - use object pool
+      for (let i = 0; i < 15 && activeSparkCount < sparkPool.length; i++) {
+        const p = sparkPool[activeSparkCount];
+        p.x = SCREEN_WIDTH / 2 + (Math.random() - 0.5) * 100;
+        p.y = SCREEN_HEIGHT - 100;
+        p.vx = (Math.random() - 0.5) * 500;
+        p.vy = -Math.random() * 300;
+        p.life = 0.5 + Math.random() * 0.5;
+        p.size = 2 + Math.random() * 3;
+        p.color = '#fbbf24';
+        activeSparkCount++;
       }
       
       if (speed > opp.speed) speed *= 0.8;
@@ -1204,21 +1271,22 @@ export const RacingGame: React.FC<RacingGameProps> = ({
 
       if (zDiff > 500 && zDiff < 4000 && Math.abs(otherX - playerX) < 0.35) {
         isSlipstreaming = true;
-        if (Math.random() > 0.4) {
-          slipstreamParticles.push({
-            x: otherX + (Math.random() - 0.5) * 0.2,
-            z: otherZ - 100 - Math.random() * 500,
-            life: 0.6,
-            opacity: 0.6
-          });
+        // Use slipstream pool instead of creating new objects
+        if (Math.random() > 0.4 && activeSlipstreamCount < slipstreamPool.length) {
+          const p = slipstreamPool[activeSlipstreamCount];
+          p.x = otherX + (Math.random() - 0.5) * 0.2;
+          p.z = otherZ - 100 - Math.random() * 500;
+          p.life = 0.6;
+          p.opacity = 0.6;
+          activeSlipstreamCount++;
         }
       }
     };
 
     /**
-     * Updates the HUD state.
+     * Updates the HUD state - throttled to reduce re-renders.
      */
-    const updateHUD = () => {
+    const updateHUD = useCallback(() => {
       const allRacers = [
         { name: 'You', distance: (lap - 1) * trackLength + position, lap: lap, isPlayer: true, id: 'local' },
         ...opponents.map(o => ({ name: o.name, distance: (o.lap - 1) * trackLength + o.z, lap: o.lap, isPlayer: false, id: o.name }))
