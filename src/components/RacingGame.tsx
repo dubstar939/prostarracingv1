@@ -9,6 +9,7 @@ import { initializeCarSprites } from '../utils/carSpriteLoader';
 import { CarConfig, RaceMode, PERFORMANCE_PARTS, CarModelType } from '../types';
 import { DifficultyLevel, DIFFICULTY_PRESETS } from '../constants/gameConfig';
 
+import { detectCollisionAABB, handleCollisionResponse, constrainToRoad, CarPhysics } from '../systems/collisionSystem';
 import { BIOMES, TRACK_TILESET } from '../constants/assets';
 
 /**
@@ -1203,11 +1204,29 @@ export const RacingGame: React.FC<RacingGameProps> = ({
           opp.sirenTimer = (opp.sirenTimer || 0) + dt * 10;
         }
 
-        // 3. Collision Detection
+        // 3. Collision Detection with AABB system
         checkSlipstream(opp.z, opp.offset);
 
-        if (Math.abs(zDiff) < 400 && Math.abs(opp.offset - playerX) < 0.3) {
-          handleCollision(opp);
+        // Use advanced collision detection from collisionSystem
+        const playerPhysics: CarPhysics = {
+          z: position,
+          offset: playerX,
+          width: CAR_WIDTH / ROAD_WIDTH,
+          length: 0.5,
+          velocity: speed,
+          mass: 1.0
+        };
+        const oppPhysics: CarPhysics = {
+          z: opp.z,
+          offset: opp.offset,
+          width: CAR_WIDTH / ROAD_WIDTH,
+          length: 0.5,
+          velocity: opp.speed,
+          mass: 1.0
+        };
+
+        if (detectCollisionAABB(playerPhysics, oppPhysics)) {
+          handleCollision(opp, playerPhysics, oppPhysics);
         }
 
         // 4. Update Z position
@@ -1223,12 +1242,16 @@ export const RacingGame: React.FC<RacingGameProps> = ({
      * Handles collision between player and an opponent.
      * @param {Opponent} opp The opponent involved in the collision.
      */
-    const handleCollision = (opp: Opponent) => {
-      const impact = Math.abs(speed - opp.speed) / 1000;
+    const handleCollision = (opp: Opponent, playerPhysics: CarPhysics, oppPhysics: CarPhysics) => {
+      // Use advanced collision response from collisionSystem
+      const response = handleCollisionResponse(playerPhysics, oppPhysics);
+      
+      // Calculate impact for effects
+      const impact = response.impactForce / 100;
       const damageBase = 0.5 + (level * 0.2);
-      damage = Math.min(100, damage + impact + damageBase);
-      audioManager.playCollision(impact / 10);
-      screenShake = impact * 5;
+      damage = Math.min(100, damage + impact * 10 + damageBase);
+      audioManager.playCollision(Math.max(0.1, impact));
+      screenShake = Math.min(10, impact * 5);
 
       // SP mistake penalty on collision
       if (mode === 'tokyo-expressway') {
@@ -1250,13 +1273,14 @@ export const RacingGame: React.FC<RacingGameProps> = ({
         p.color = '#fbbf24';
         activeSparkCount++;
       }
-      
-      if (speed > opp.speed) speed *= 0.8;
-      else opp.speed *= 0.8;
-      
-      // Push player away from opponent to prevent getting stuck
-      const pushFactor = 0.3 + Math.random() * 0.2;
-      playerX += (playerX > opp.offset ? pushFactor : -pushFactor);
+
+      // Apply velocity changes from collision response
+      speed *= response.playerVelocityMultiplier;
+      opp.speed *= response.oppVelocityMultiplier;
+
+      // Apply smooth separation on X-axis to prevent overlap
+      playerX = constrainToRoad(playerX + response.playerOffsetDelta, 1.4);
+      opp.offset = constrainToRoad(opp.offset + response.oppOffsetDelta, 1.4);
     };
 
     /**
